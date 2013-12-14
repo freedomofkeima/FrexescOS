@@ -1,5 +1,6 @@
 /**
   * Accelerator.cpp File
+  * Copyright (C) 2013
   * @Frexesc
   *
 */
@@ -219,7 +220,8 @@ static struct sister_fuse_operations: fuse_operations {
 
 int main(int argc, char *argv[]) {
 	FileHelper fs;
-	fs.createNew("sister.fs", "newPartition");
+	for (int i = 0; i < argc; i++)
+		if (string(argv[i]) == "new") fs.createNew("sister.fs", "newPartition");
 	fs.readFile("sister.fs");
 	//umask(0);
 	//return fuse_main(argc, argv, &sister_oper, NULL);

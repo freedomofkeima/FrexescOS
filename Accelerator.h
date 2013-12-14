@@ -1,5 +1,6 @@
 /**
   * Accelerator.h File
+  * Copyright (C) 2013
   * @Frexesc
   *
 */

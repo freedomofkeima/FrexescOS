@@ -1,10 +1,19 @@
 /**
   * FileHelper.cpp File
+  * Copyright (C) 2013
   * @Frexesc
   *
 */
 
 #include "FileHelper.h"
+
+/**
+  * TODO:
+  * 1. Create file attribute parser
+  * 2. Create date parser
+  * 3. Create hour parser
+  *
+  */
 
 /** Convert int to char* */
 unsigned char* convertIntToChar(int input) {
@@ -18,10 +27,27 @@ unsigned char* convertIntToChar(int input) {
 	return bytes;
 }
 
+unsigned char* convert2IntToChar(int input) {
+	unsigned char* bytes = new unsigned char[2];
+
+	bytes[0] = (input >> 8) & 0xFF;
+	bytes[1] = input & 0xFF;
+
+	return bytes;
+}
+
 /** Convert char* to int */
 int convertCharToInt(unsigned char input[4]) {
 	unsigned int x;
 	
+	x = *(int *) input;
+
+	return x;
+}
+
+int convert2CharToInt(unsigned char input[2]) {
+	unsigned int x;
+
 	x = *(int *) input;
 
 	return x;
@@ -36,6 +62,19 @@ void FileHelper::createNew(string filename, string name) {
 	empty_block = 65534; // initialize
 	first_pointer = 1;
 
+	for (int i = 0; i < 128; i++) // SAT initialize
+		for (int j = 0; j < BLOCK_SIZE; j++)
+			sat[i].buffer[j] = '0';
+
+	for (int i = 0; i < 32; i++) { // ROOT initialize
+		for (int j = 0; j < 21; j++) root[i].name[j] = '\0';
+		root[i].attribute = '\0';
+		root[i].hour[0] = '\0'; root[i].hour[1] = '\0';
+		root[i].date[0] = '\0';	root[i].date[1] = '\0';
+		root[i].block_pointer = 0;
+		root[i].file_size = 0;
+	}
+
 	ofstream new_file(filename.c_str()); // create a new file for filesystem
 	writeFile(filename); // write to new filesystem
 }
@@ -44,7 +83,7 @@ void FileHelper::writeFile(string filename) {
 	ofstream file(filename.c_str()); // open file
 	unsigned char* temp;
 	/** Volume Information */
-	char header[1024];
+	char header[BLOCK_SIZE];
 	// 8 byte (0 - 7)
 	header[0] = 's'; header[1] = 'i'; header[2] = 's'; header[3] = 't';
 	header[4] = 'e'; header[5] = 'r'; header[6] = 'F'; header[7] = 'S';
@@ -67,20 +106,40 @@ void FileHelper::writeFile(string filename) {
 	// 4 byte (1020 - 1023)
 	header[1020] = 'S'; header[1021] = 'I'; header[1022] = 'S'; header[1023] = 'T';
 	for (int i = 0; i < 1024; i++) file << header[i];
+
 	/** Sister Allocation Table (SAT) */
+	// 128 KB (SAT_OFFSET - SAT_OFFSET + 128 * 1024 - 1)
+	for (int i = 0; i < 128; i++)
+		for (int j = 0; j < BLOCK_SIZE; j++) file << sat[i].buffer[j];
 
 	/** Root Directory */
+	// 1024 Byte (ROOT_OFFSET - ROOT_OFFSET + 1023)
+	for (int i = 0; i < 32; i++) {
+		for (int j = 0; j < 21; j++) file << root[i].name[j];
+		file << root[i].attribute;
+		file << root[i].hour[0]; file << root[i].hour[1];
+		file << root[i].date[0]; file << root[i].date[1];
+		file << root[i].block_pointer;
+		file << root[i].file_size;
+	}
 
 	/** Data Pool */
+	// 65534 Blocks (POOL_OFFSET - POOL_OFFSET + 65534 * 1024 - 1)
+	for (int i = 1; i < 65535; i++)
+		for (int j = 0; j < BLOCK_SIZE; j++)
+			file << '\0';
 
 	file.close();
 }
 
 void FileHelper::readFile(string filename) {
-	ifstream file(filename.c_str(), std::ios::binary);
-	vector<char> buffer((
-		std::istreambuf_iterator<char>(file)),
-		(std::istreambuf_iterator<char>()));
+	FILE *file;
+	file = fopen(filename.c_str(), "rb");
+	char* buffer = (char*) malloc (sizeof(char) * POOL_OFFSET);
+	if (buffer == NULL) cout << "Memory Error!" << endl;
+	int result = fread(buffer, 1, POOL_OFFSET, file);
+	fclose(file);
+
 	unsigned char* temp = new unsigned char[4];
 	/** Volume Information */
 	// 256 byte (8 - 263)
@@ -97,12 +156,34 @@ void FileHelper::readFile(string filename) {
 	first_pointer = convertCharToInt(temp);
 
 	/** Sister Allocation Table (SAT) */
+	// 128 KB (SAT_OFFSET - SAT_OFFSET + 128 * 1024 - 1)
 
 	/** Root Directory */
-
-	/** Data Pool */
+	// 1024 Byte (ROOT_OFFSET - ROOT_OFFSET + 1023)
 
 	printInfo();
+}
+
+/** Read Data Pool (block 1 - 65534) */
+// NOTE : UNTESTED
+char* FileHelper::readDataPool(string filename, int block) {
+	char* buffer = (char*) malloc (sizeof(char) * BLOCK_SIZE);
+	FILE *file;
+	file = fopen(filename.c_str(), "rb");
+	fseek(file, POOL_OFFSET + (block - 1) * 1024, SEEK_SET);
+	int result = fread(buffer, 1, BLOCK_SIZE, file);
+	fclose(file);
+	return buffer;
+}
+
+/** Update Data Pool (block 1 - 65534) */
+// NOTE : UNTESTED
+void FileHelper::updateDataPool(string filename, int block, char* data) {
+	FILE *file;
+	file = fopen(filename.c_str(), "wb");
+	fseek(file, POOL_OFFSET + (block - 1) * 1024, SEEK_SET);
+	fputs(data, file);
+	fclose(file);
 }
 
 // for debugging purposes
