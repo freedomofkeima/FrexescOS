@@ -18,7 +18,6 @@ static int sister_getattr(const char *path, struct stat *stbuf)
 {
 	int res = -ENOENT;
 
-	time_t test_time = time(0); // current time
 	memset(stbuf, 0, sizeof(struct stat));
 
 	if (strcmp(path, "/") == 0) { // ROOT Directory
@@ -39,7 +38,7 @@ static int sister_getattr(const char *path, struct stat *stbuf)
 					else stbuf->st_mode = S_IFREG | 0666;
 				}
 				stbuf->st_nlink = 1;
-				stbuf->st_mtime = test_time; // TODO : change to file time
+				stbuf->st_mtime = fs.getTimeInfo(fs.root[i]);
 				stbuf->st_size = fs.root[i].file_size; // file size
 				res = 0;
 			}
@@ -196,13 +195,18 @@ static int sister_truncate(const char *path, off_t size)
   */
 static int sister_open(const char *path, struct fuse_file_info *fi)
 {
-	int res = 0;
+	int res = -ENOENT;
 
-	/*res = open(path, fi->flags);
-	if (res == -1)
-		return -errno;
+	for (int i = 0; i < 32; i++) { // if exact match
+		if (fs.root[i].name[0] != '\0') { // not NULL
+			char bname[22]; strcpy(bname, "/"); strcat(bname, fs.root[i].name);
+			if (strcmp(bname, path) == 0) {
+				if ((fi->flags & 3) != O_RDONLY) res = -EACCES;
+				res = 0;
+			}
+		}
+	}
 
-	close(res); */
 	return res;
 }
 
@@ -212,20 +216,27 @@ static int sister_open(const char *path, struct fuse_file_info *fi)
 static int sister_read(const char *path, char *buf, size_t size, off_t offset,
 		    struct fuse_file_info *fi)
 {
-	int res = 0;
-	/*int fd;
+	int res = -ENOENT, idx = 0;
 
-	(void) fi;
-	fd = open(path, O_RDONLY);
-	if (fd == -1)
-		return -errno;
+	for (int i = 0; i < 32; i++) { // if exact match
+		if (fs.root[i].name[0] != '\0') { // not NULL
+			char bname[22]; strcpy(bname, "/"); strcat(bname, fs.root[i].name);
+			if (strcmp(bname, path) == 0) {
+				idx = i;
+				res = 0;
+			}
+		}
+	}
 
-	res = pread(fd, buf, size, offset);
-	if (res == -1)
-		res = -errno;
-
-	close(fd); */ 
-	return res;
+	if (res == 0) {
+		if (offset < fs.root[idx].file_size) {
+			if (offset + size > fs.root[idx].file_size)
+				size = fs.root[idx].file_size - offset;
+			//memcpy(buf, hello_str + offset, size);
+		} else size = 0;
+	} else size = 0;
+ 
+	return size;
 }
 
 /**

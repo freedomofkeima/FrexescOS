@@ -244,7 +244,7 @@ void FileHelper::readFile() {
 	fclose(file);
 
 	printInfo();
-	parseFileInfo(getDataPool(1));
+	getTimeInfo(getDataPool(1));
 }
 
 /** Read Data Pool (block 1 - 65534) */
