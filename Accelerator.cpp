@@ -10,17 +10,13 @@
 
 #include "Accelerator.h"
 
+char* rootdir;
+
 /**
   * Implementation of getattr
   */
 static int sister_getattr(const char *path, struct stat *stbuf)
 {
-	int res;
-
-	res = lstat(path, stbuf);
-	if (res == -1)
-		return -errno;
-
 	return 0;
 }
 
@@ -220,6 +216,8 @@ int main(int argc, char *argv[]) {
 			argc--; i--;
 		}
 	}
+	rootdir = realpath(argv[argc-2], NULL);
+	cout << rootdir << endl;
 	fs.readFile(filename);
 
 	//umask(0);

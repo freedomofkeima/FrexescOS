@@ -17,6 +17,7 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <sys/time.h>
+#include <linux/limits.h>
 #include <unistd.h>
 #include "FileHelper.h"
 
