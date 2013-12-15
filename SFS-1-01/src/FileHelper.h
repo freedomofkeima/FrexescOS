@@ -64,11 +64,12 @@ class FileHelper {
 		char* readDataPool(int); // read Data Pool from certain block
 		void updateRootDirectory(file_info); // update Root Directory using file_info
 		void updateRootDirectory(char*); // update Root Directory (seek first)
+		void updateDataPool(int, file_info); // update Data Pool using file_info
 		void updateDataPool(int, char*); // update Data Pool at certain block
 
 		void printInfo(); // print info to screen
 		file_info getDataPool(int);
-		void parseFileInfo(file_info);
+		time_t getTimeInfo(file_info);
 		void createDummy();
 		void createDir(string);
 		bitset<4> getAttr(char);
