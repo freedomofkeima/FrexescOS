@@ -40,7 +40,7 @@ static int sister_getattr(const char *path, struct stat *stbuf)
 static int sister_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 		       off_t offset, struct fuse_file_info *fi)
 {
-	/*DIR *dp;
+	DIR *dp;
 	struct dirent *de;
 
 	(void) offset;
@@ -59,7 +59,7 @@ static int sister_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 			break;
 	}
 
-	closedir(dp);*/
+	closedir(dp);
 	return 0;
 }
 
@@ -68,11 +68,11 @@ static int sister_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
   */
 static int sister_mknod(const char *path, mode_t mode, dev_t rdev)
 {
-	//int res;
+	int res;
 
 	/* On Linux this could just be 'mknod(path, mode, rdev)' but this
 	   is more portable */
-	/*if (S_ISREG(mode)) {
+	if (S_ISREG(mode)) {
 		res = open(path, O_CREAT | O_EXCL | O_WRONLY, mode);
 		if (res >= 0)
 			res = close(res);
@@ -81,7 +81,7 @@ static int sister_mknod(const char *path, mode_t mode, dev_t rdev)
 	else
 		res = mknod(path, mode, rdev);
 	if (res == -1)
-		return -errno; */
+		return -errno; 
 
 	return 0;
 }
@@ -91,11 +91,11 @@ static int sister_mknod(const char *path, mode_t mode, dev_t rdev)
   */
 static int sister_mkdir(const char *path, mode_t mode)
 {
-	/*int res;
+	int res;
 
 	res = mkdir(path, mode);
 	if (res == -1)
-		return -errno;*/
+		return -errno;
 
 	return 0;
 }
@@ -105,11 +105,11 @@ static int sister_mkdir(const char *path, mode_t mode)
   */
 static int sister_rmdir(const char *path)
 {
-	/*int res;
+	int res;
 
 	res = rmdir(path);
 	if (res == -1)
-		return -errno;*/
+		return -errno;
 
 	return 0;
 }
@@ -119,11 +119,11 @@ static int sister_rmdir(const char *path)
   */
 static int sister_rename(const char *from, const char *to)
 {
-	/*int res;
+	int res;
 
 	res = rename(from, to);
 	if (res == -1)
-		return -errno;*/
+		return -errno;
 
 	return 0;
 }
@@ -133,11 +133,11 @@ static int sister_rename(const char *from, const char *to)
   */
 static int sister_truncate(const char *path, off_t size)
 {
-	/*int res;
+	int res;
 
 	res = truncate(path, size);
 	if (res == -1)
-		return -errno;*/
+		return -errno;
 
 	return 0;
 }
@@ -147,13 +147,13 @@ static int sister_truncate(const char *path, off_t size)
   */
 static int sister_open(const char *path, struct fuse_file_info *fi)
 {
-	/*int res;
+	int res;
 
 	res = open(path, fi->flags);
 	if (res == -1)
 		return -errno;
 
-	close(res); */
+	close(res); 
 	return 0;
 }
 
@@ -164,7 +164,7 @@ static int sister_read(const char *path, char *buf, size_t size, off_t offset,
 		    struct fuse_file_info *fi)
 {
 	int res = 0;
-	/*int fd;
+	int fd;
 
 	(void) fi;
 	fd = open(path, O_RDONLY);
@@ -175,7 +175,7 @@ static int sister_read(const char *path, char *buf, size_t size, off_t offset,
 	if (res == -1)
 		res = -errno;
 
-	close(fd); */
+	close(fd); 
 	return res;
 }
 
@@ -186,7 +186,7 @@ static int sister_write(const char *path, const char *buf, size_t size,
 		     off_t offset, struct fuse_file_info *fi)
 {
 	int res = 0;
-	/*int fd;
+	int fd;
 
 	(void) fi;
 	fd = open(path, O_WRONLY);
@@ -197,7 +197,7 @@ static int sister_write(const char *path, const char *buf, size_t size,
 	if (res == -1)
 		res = -errno;
 
-	close(fd); */
+	close(fd); 
 	return res;
 }
 
