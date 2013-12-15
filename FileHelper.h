@@ -12,6 +12,9 @@
 #include <vector>
 #include <iostream>
 #include <cstring>
+#include <ctime>
+#include <algorithm>
+#include <cstring>
 #include <stdlib.h>
 
 using namespace std;
@@ -53,7 +56,7 @@ class FileHelper {
 		FileHelper(); // default constructor
 
 		void createNew(string, string); // create a new filesystem
-		void writeFile(string); // write to a file
+		void writeFile(string, bool); // write to a file
 		void readFile(string); // read from file
 
 		char* readDataPool(string, int); // read Data Pool from certain block
@@ -62,6 +65,7 @@ class FileHelper {
 		void printInfo(); // print info to screen
 		file_info getDataPool(string, int);
 		void parseFileInfo(file_info);
+		void createDummy();
 };
 
 #endif

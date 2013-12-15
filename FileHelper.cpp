@@ -76,11 +76,13 @@ void FileHelper::createNew(string filename, string name) {
 	}
 
 	ofstream new_file(filename.c_str()); // create a new file for filesystem
-	writeFile(filename); // write to new filesystem
+	writeFile(filename, true); // write to new filesystem
+	createDummy(); // create a dummy file
 }
 
-void FileHelper::writeFile(string filename) {
-	ofstream file(filename.c_str()); // open file
+void FileHelper::writeFile(string filename, bool isNew) {
+	FILE *file;
+	file = fopen(filename.c_str(), "rb+"); // open file
 	unsigned char* temp;
 	/** Volume Information */
 	char header[BLOCK_SIZE];
@@ -105,31 +107,55 @@ void FileHelper::writeFile(string filename) {
 	for (int i = 280; i < 1020; i++) header[i] = '0';
 	// 4 byte (1020 - 1023)
 	header[1020] = 'S'; header[1021] = 'I'; header[1022] = 'S'; header[1023] = 'T';
-	for (int i = 0; i < 1024; i++) file << header[i];
+	for (int i = 0; i < 1024; i++) {
+		fseek(file, i, SEEK_SET);
+		fputc(header[i], file);
+	}
 
 	/** Sister Allocation Table (SAT) */
 	// 128 KB (SAT_OFFSET - SAT_OFFSET + 128 * 1024 - 1)
-	for (int i = 0; i < 128; i++)
-		for (int j = 0; j < BLOCK_SIZE; j++) file << sat[i].buffer[j];
+	for (int i = 0; i < 128; i++) {
+		for (int j = 0; j < BLOCK_SIZE; j++) {
+			fseek(file, SAT_OFFSET + i * BLOCK_SIZE + j, SEEK_SET);
+			fputc(sat[i].buffer[j], file);
+		}
+	}
 
 	/** Root Directory */
 	// 1024 Byte (ROOT_OFFSET - ROOT_OFFSET + 1023)
 	for (int i = 0; i < 32; i++) {
-		for (int j = 0; j < 21; j++) file << root[i].name[j];
-		file << root[i].attribute;
-		file << root[i].hour[0]; file << root[i].hour[1];
-		file << root[i].date[0]; file << root[i].date[1];
-		file << root[i].block_pointer;
-		file << root[i].file_size;
+		char temp_info[32];
+		for (int j = 0; j < 21; j++) temp_info[j] = root[i].name[j];
+		temp_info[21] = root[i].attribute;
+		temp_info[22] = root[i].hour[0];
+		temp_info[23] = root[i].hour[1];
+		temp_info[24] = root[i].date[0];
+		temp_info[25] = root[i].date[1];
+		
+		unsigned char* temp2;
+		temp2 = convert2IntToChar(root[i].block_pointer);
+		for (int j = 0; j < 2; j++) temp_info[26 + j] = temp2[j];
+		temp2 = convertIntToChar(root[i].file_size);
+		for (int j = 0; j < 4; j++) temp_info[28 + j] = temp2[j];
+
+		for (int j = 0; j < 32; j++) {
+			fseek(file, ROOT_OFFSET + i * 32 + j, SEEK_SET);
+			fputc(temp_info[j], file);
+		}
 	}
 
 	/** Data Pool */
 	// 65534 Blocks (POOL_OFFSET - POOL_OFFSET + 65534 * 1024 - 1)
-	for (int i = 1; i < 65535; i++)
-		for (int j = 0; j < BLOCK_SIZE; j++)
-			file << '\0';
+	if (isNew) {
+		fseek(file, POOL_OFFSET, SEEK_SET);
+		for (int i = 1; i < 65535; i++) {
+			for (int j = 0; j < BLOCK_SIZE; j++) {
+				fputc('\0', file);
+			}
+		}
+	}
 
-	file.close();
+	fclose(file);
 }
 
 void FileHelper::readFile(string filename) {
@@ -162,6 +188,7 @@ void FileHelper::readFile(string filename) {
 	// 1024 Byte (ROOT_OFFSET - ROOT_OFFSET + 1023)
 
 	printInfo();
+	parseFileInfo(getDataPool("sister.fs", 1));
 }
 
 /** Read Data Pool (block 1 - 65534) */
@@ -218,6 +245,10 @@ void FileHelper::parseFileInfo(file_info infos) {
 	M = (tt-temps) >> 5;
 	temps = 0 + d + M << 5;
 	y = 2010 + (tt-temps) >> 9;
+	
+	printf("%d %d %d %d %d %d\n", s, m, h, d, M, y);
+	cout << infos.name << endl;
+	cout << infos.file_size << endl;
 }
 
 file_info FileHelper::getDataPool(string filename, int block) {
@@ -276,4 +307,83 @@ void FileHelper::printInfo() {
 
 	/** Data Pool */
 
+}
+
+void FileHelper::createDummy() {
+	char* datacontent = (char*) malloc (sizeof(char) * BLOCK_SIZE);
+	char* data = (char*) malloc (sizeof(char) * BLOCK_SIZE);
+	
+	memset(datacontent, 0, sizeof(datacontent));
+	memset(data, 0, sizeof(data));
+	
+	int filesize = 0;
+	string filename = "dummy.txt";
+	/* MOVE TO NEXT EMPTY */
+	first_pointer++;
+	
+	/* FILENAME */
+	for (int i = 0; i < filename.size(); i++) {
+		data[i] = filename[i];
+	}
+	data[filename.size()] = '\0';
+	
+	/* ATRIBUT */
+	data[21] = 1;
+	
+	/* GET SYSTEM TIME */
+	time_t t;
+	t = time(0);
+	struct tm *timer;
+	timer = localtime(&t);
+	
+	/* GET JAM */
+	int h = timer->tm_hour;
+	int m = timer->tm_min;
+	int s = timer->tm_sec; s = s/2 + s%2;
+	int jam = 0;
+	jam += h << 11;
+	jam += m << 5;
+	jam += s;
+	
+	/* GET TANGGAL */
+	int y = timer->tm_year;	y -= 110;
+	int M = timer->tm_mon; M++;
+	int d = timer->tm_mday;
+	int tanggal = 0;
+	tanggal += y << 9;
+	tanggal += M << 5;
+	tanggal += d;
+	
+	/* CONVERT JAM, TANGGAL, FIRST BLOCK, FILESIZE MASUKIN KE DATA */
+	unsigned char* temp;
+	temp = convert2IntToChar(jam);
+	data[22] = temp[0];
+	data[23] = temp[1];
+	temp = convert2IntToChar(tanggal);
+	data[24] = temp[0];
+	data[25] = temp[1];
+	temp = convert2IntToChar(first_pointer);
+	data[26] = temp[0];
+	data[27] = temp[1];
+	temp = convertIntToChar(filesize);
+	data[28] = temp[0];
+	data[29] = temp[1];
+	data[30] = temp[2];
+	data[31] = temp[3];
+	
+	/* WRITE TO DATA POOL */
+	updateDataPool("sister.fs", first_pointer, data);
+	
+	/* DEC EMPTY_BLOCK BY 1 */
+	empty_block--;
+	
+	/* WRITE TO DATA POOL */
+	updateDataPool("sister.fs", first_pointer, datacontent);
+	/* MOVE TO NEXT EMPTY */
+	first_pointer++;
+	/* DEC EMPTY_BLOCK BY 1 */
+	empty_block--;
+	
+	/** UPDATE VOLUME INFORMATION */
+	writeFile("sister.fs", false);
 }
