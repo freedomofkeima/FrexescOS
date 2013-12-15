@@ -60,6 +60,7 @@ class FileHelper {
 		void readFile(string); // read from file
 
 		char* readDataPool(string, int); // read Data Pool from certain block
+		void updateRootDirectory(string, char*); // update Root Directory (seek first)
 		void updateDataPool(string, int, char*); // update Data Pool at certain block
 
 		void printInfo(); // print info to screen
