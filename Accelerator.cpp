@@ -94,26 +94,29 @@ static int sister_mkdir(const char *path, mode_t mode)
 }
 
 /**
-  * Implementation of mknod (TODO)
+  * Implementation of mknod (TODO : Implement newFile)
   */
 static int sister_mknod(const char *path, mode_t mode, dev_t rdev)
 {
-	int res;
+	int res = -ENOENT, idx = 0;
 
-	/* On Linux this could just be 'mknod(path, mode, rdev)' but this
-	   is more portable */
-	if (S_ISREG(mode)) {
-		res = open(path, O_CREAT | O_EXCL | O_WRONLY, mode);
-		if (res >= 0)
-			res = close(res);
-	} else if (S_ISFIFO(mode))
-		res = mkfifo(path, mode);
-	else
-		res = mknod(path, mode, rdev);
-	if (res == -1)
-		return -errno;
+	for (int i = 0; i < 32; i++) { // if exact match
+		if (fs.root[i].name[0] != '\0') { // not NULL
+			char bname[22]; strcpy(bname, "/"); strcat(bname, fs.root[i].name);
+			if (strcmp(bname, path) == 0) {
+				idx = i;
+				res = 0;
+			}
+		}
+	}
 
-	// res = sister_mkdir(path, mode);
+	if (res == -ENOENT) {
+		/** Create new file */
+		string filename = path, temp_name = "";
+		char data[1] = {'\0'};
+		for (int j = 1; j < (int) filename.length(); j++) temp_name += filename[j];
+		fs.newFile(temp_name, data);
+	}
 
 	return 0;
 }
@@ -279,6 +282,14 @@ static int sister_write(const char *path, const char *buf, size_t size,
 				else res = 0;
 			}
 		}
+	}
+	
+	if (res == -ENOENT) {
+		/** Create new file */
+		string filename = path, temp_name = "";
+		char data[1] = {'\0'};
+		for (int j = 1; j < (int) filename.length(); j++) temp_name += filename[j];
+		fs.newFile(temp_name, data);
 	}
 
 	if (res == 0) {

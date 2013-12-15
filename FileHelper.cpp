@@ -391,7 +391,7 @@ time_t FileHelper::getTimeInfo(file_info infos) {
 	timeinfo.tm_hour = h;
 	timeinfo.tm_min = m;
 	timeinfo.tm_sec = s;
-	printf("%u %u %u %u %u %u\n", y, M, d, h, m, s);
+	//printf("%u %u %u %u %u %u\n", y, M, d, h, m, s);
 	time_t raw = mktime(&timeinfo);
 	return raw;
 }
@@ -712,7 +712,7 @@ void FileHelper::newFile(file_info info, char* data) {
 }
 
 /** Create new file */
-void FileHelper::newFile(char* data) {
+void FileHelper::newFile(string filename, char* data) {
 	// Generate file_info
 	file_info newfile_info;
 
