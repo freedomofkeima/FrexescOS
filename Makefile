@@ -1,5 +1,6 @@
 # Compiling accelerator	
 all : Accelerator.o FileHelper.o
+	rm -rf bin
 	mkdir bin
 	g++ -Wall -O2 -o bin/Accelerator Accelerator.o `pkg-config fuse --cflags --libs` FileHelper.o
 
