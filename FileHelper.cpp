@@ -180,10 +180,87 @@ char* FileHelper::readDataPool(string filename, int block) {
 // NOTE : UNTESTED
 void FileHelper::updateDataPool(string filename, int block, char* data) {
 	FILE *file;
-	file = fopen(filename.c_str(), "wb");
-	fseek(file, POOL_OFFSET + (block - 1) * 1024, SEEK_SET);
-	fputs(data, file);
+	file = fopen(filename.c_str(), "rb+");
+	for (int i = 0; i < BLOCK_SIZE; i++) {
+		fseek(file, POOL_OFFSET + (block - 1) * 1024 + i, SEEK_SET);
+		fputc(data[i], file);
+	}
 	fclose(file);
+}
+
+void FileHelper::parseFileInfo(file_info infos) {
+	bool attrs[4];
+	for (int i = 0; i < 4; i++) {
+		attrs[i] = infos.attribute & (1 << i);
+	}
+	
+	int s, m, h, d, M, y;
+	unsigned int tt = convert2CharToInt(infos.hour);
+	unsigned int temps = tt;
+	temps >>= 5;
+	temps <<= 5;
+	s = tt-temps;
+	temps >>= 11;
+	temps <<= 11;
+	temps += s;
+	m = (tt-temps) >> 5;
+	temps = 0 + s + m << 5;
+	h = (tt-temps) >> 11;
+	
+	tt = convert2CharToInt(infos.date);
+	temps = tt;
+	temps >>= 5;
+	temps <<= 5;
+	d = tt-temps;
+	temps >>= 9;
+	temps <<= 9;
+	temps += d;
+	M = (tt-temps) >> 5;
+	temps = 0 + d + M << 5;
+	y = 2010 + (tt-temps) >> 9;
+}
+
+file_info FileHelper::getDataPool(string filename, int block) {
+	file_info infos;
+	char* dataread = readDataPool(filename, block);
+	
+	/* filename */
+	for (int i = 0; i < 20; i++) {
+		if (dataread[i] != '\0') {
+			infos.name[i] = dataread[i];
+		} else {
+			infos.name[i] = '\0';
+			break;
+		}
+	}
+	
+	/* attributes */
+	/* 0 = readonly, 1 = hidden, 2 = archive, 3 = dir */
+	infos.attribute = dataread[21];
+	
+	/* time */
+	infos.hour[1] = dataread[22];
+	infos.hour[0] = dataread[23];
+	
+	/* date */
+	infos.date[1] = dataread[24];
+	infos.hour[0] = dataread[25];
+	
+	/* first block */
+	unsigned char dread[2];
+	dread[1] = dataread[26];
+	dread[0] = dataread[27];
+	infos.block_pointer = convert2CharToInt(dread);
+	
+	/* file size */
+	unsigned char dreads[4];
+	dreads[3] = dataread[28];
+	dreads[2] = dataread[29];
+	dreads[1] = dataread[30];
+	dreads[0] = dataread[31];
+	infos.file_size = convertCharToInt(dreads);
+	
+	return infos;
 }
 
 // for debugging purposes

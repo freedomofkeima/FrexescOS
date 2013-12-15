@@ -28,11 +28,16 @@ typedef struct {
 typedef struct {
 	char name[21];
 	char attribute;
-	char hour[2];
-	char date[2];
+	unsigned char hour[2];
+	unsigned char date[2];
 	int block_pointer; // 2 byte
 	int file_size; // 4 byte
 } file_info;
+
+unsigned char* convertIntToChar(int input);
+unsigned char* convert2IntToChar(int input);
+int convertCharToInt(unsigned char input[4]);
+int convert2CharToInt(unsigned char input[2]);
 
 class FileHelper {
 	public:
@@ -55,7 +60,8 @@ class FileHelper {
 		void updateDataPool(string, int, char*); // update Data Pool at certain block
 
 		void printInfo(); // print info to screen
-
+		file_info getDataPool(string, int);
+		void parseFileInfo(file_info);
 };
 
 #endif
