@@ -462,3 +462,84 @@ void FileHelper::createDummy() {
 	readFile("sister.fs");
 	writeFile("sister.fs", false);
 }
+
+void FileHelper::createDir(string filename) {
+	char* data = (char*) malloc (sizeof(char) * BLOCK_SIZE);
+	
+	memset(data, 0, sizeof(data));
+	
+	int filesize = 0;
+	
+	/* FILENAME */
+	for (int i = 0; i < filename.size(); i++) {
+		data[i] = filename[i];
+	}
+	data[filename.size()] = '\0';
+	
+	/* ATRIBUT */
+	data[21] = 8;
+	
+	/* GET SYSTEM TIME */
+	time_t t;
+	t = time(0);
+	struct tm *timer;
+	timer = localtime(&t);
+	
+	/* GET JAM */
+	int h = timer->tm_hour;
+	int m = timer->tm_min;
+	int s = timer->tm_sec; s = s/2 + s%2;
+	int jam = 0;
+	jam += h << 11;
+	jam += m << 5;
+	jam += s;
+	
+	/* GET TANGGAL */
+	int y = timer->tm_year;	y -= 110;
+	int M = timer->tm_mon; M++;
+	int d = timer->tm_mday;
+	int tanggal = 0;
+	tanggal += y << 9;
+	tanggal += M << 5;
+	tanggal += d;
+	
+	/* CONVERT JAM, TANGGAL, FIRST BLOCK, FILESIZE MASUKIN KE DATA */
+	unsigned char* temp;
+	temp = convert2IntToChar(jam);
+	data[22] = temp[0];
+	data[23] = temp[1];
+	temp = convert2IntToChar(tanggal);
+	data[24] = temp[0];
+	data[25] = temp[1];
+	temp = convert2IntToChar(first_pointer+1);
+	data[26] = temp[0];
+	data[27] = temp[1];
+	temp = convertIntToChar(filesize);
+	data[28] = temp[0];
+	data[29] = temp[1];
+	data[30] = temp[2];
+	data[31] = temp[3];
+	
+	/* WRITE TO DATA POOL */
+	updateDataPool("sister.fs", first_pointer, data);
+	// Update Root Directory
+	updateRootDirectory("sister.fs", data);
+	
+	/* DEC EMPTY_BLOCK BY 1 */
+	empty_block--;
+	/* MOVE TO NEXT EMPTY */
+	first_pointer++;
+	
+	/** UPDATE VOLUME INFORMATION */
+	readFile("sister.fs");
+	writeFile("sister.fs", false);
+}
+
+bitset<4> FileHelper::getAttr(char c) {
+	/* 0 = readonly, 1 = hidden, 2 = archive, 3 = dir */
+	bitset<4> res;
+	for (int i = 0; i < 4; i++) {
+		res[i] = c & (1 << i);
+	}
+	return res;
+}

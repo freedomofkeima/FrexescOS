@@ -15,6 +15,7 @@
 #include <ctime>
 #include <algorithm>
 #include <cstring>
+#include <bitset>
 #include <stdlib.h>
 
 using namespace std;
@@ -67,6 +68,8 @@ class FileHelper {
 		file_info getDataPool(string, int);
 		void parseFileInfo(file_info);
 		void createDummy();
+		void createDir(string);
+		bitset<4> getAttr(char);
 };
 
 #endif

@@ -33,9 +33,13 @@ static int sister_getattr(const char *path, struct stat *stbuf)
 
 	for (int i = 0; i < 32; i++) { // if exact match
 		if (fs.root[i].name[0] != '\0') { // not NULL
-			if (strcmp(fs.root[i].name, "dummy.txt") == 0 && strcmp(path, "/") != 0) {
-				cout << "test" << endl;
-				stbuf->st_mode = S_IFREG | 0444;
+			char bname[22]; strcpy(bname, "/"); strcat(bname, fs.root[i].name);
+			if (strcmp(bname, path) == 0) {
+				if (fs.root[i].attribute & (1 << 3)) {
+					stbuf->st_mode = S_IFDIR | 0444;
+				} else {
+					stbuf->st_mode = S_IFREG | 0444;
+				}
 				stbuf->st_nlink = 1;
 				stbuf->st_mtime = test_time;
 				stbuf->st_size = fs.root[i].file_size;
@@ -64,10 +68,18 @@ static int sister_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 
 	filler(buf, ".", NULL, 0);
 	filler(buf, "..", NULL, 0);
-
+	
+	/*
 	char *hello_path = "/dummy.txt";
 	filler(buf, hello_path + 1, NULL, 0);
+	*/
 	
+	for (int i = 0; i < 32; i++) { // if exact match
+		if (fs.root[i].name[0] != '\0') { // not NULL
+			char bname[22]; strcpy(bname, "/"); strcat(bname, fs.root[i].name);
+			filler(buf, bname + 1, NULL, 0);
+		}
+	}
 
 	/*while ((de = readdir(dp)) != NULL) {
 		struct stat st;
@@ -110,13 +122,18 @@ static int sister_mknod(const char *path, mode_t mode, dev_t rdev)
   */
 static int sister_mkdir(const char *path, mode_t mode)
 {
-	int res;
-
+	int res = -ENOENT;
+	cout << path << endl;
+	cout << mode << endl;
+	string name(path);
+	name = name.substr(1);
+	fs.createDir(name);
+	res = 0;
 	/*res = mkdir(path, mode);
 	if (res == -1)
 		return -errno;*/
 
-	return 0;
+	return res;
 }
 
 /**
@@ -138,13 +155,33 @@ static int sister_rmdir(const char *path)
   */
 static int sister_rename(const char *from, const char *to)
 {
-	int res;
-
+	int res = -ENOENT;
+	for (int i = 0; i < 32; i++) { // if exact match
+		if (fs.root[i].name[0] != '\0') { // not NULL
+			string c = ""; string fr(fs.root[i].name);
+			c.push_back('/');
+			c += fr;
+			string n(from);
+			cout << c << " " << n << endl;
+			if (c == n) {
+				for (int j = 0; j < 21; j++) {
+					if (to[j+1] != '\0') {
+						fs.root[i].name[j] = to[j+1];
+					} else {
+						fs.root[i].name[j] = '\0';
+						break;
+					}
+				}
+				res = 0;
+			}
+		}
+	}
+	
 	/*res = rename(from, to);
 	if (res == -1)
 		return -errno;*/
 
-	return 0;
+	return res;
 }
 
 /**
