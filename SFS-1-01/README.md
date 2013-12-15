@@ -9,7 +9,7 @@ Anggota:
     
 Cara Running / Build:
 
-    1. Gunakan make clean all untuk melakukan kompilasi
+    1. Gunakan make clean all untuk melakukan kompilasi pada direktori /src
     2. Eksekusi (baru): "/bin/Accelerator /tmp/fuse sister.fs new -d -o nonempty" (Usage: [PATH_EXE] [PATH_MOUNT] [FILESYSTEM])
     3. Eksekusi (selanjutnya): "/bin/Accelerator /tmp/fuse sister.fs -d -o nonempty"
     Keterangan: -d digunakan untuk debug, -o nonempty digunakan untuk menghindari double mount
