@@ -1,6 +1,6 @@
 # Compiling accelerator	
 all : Accelerator.o FileHelper.o
-	g++ -Wall -O2 -o Accelerator Accelerator.o `pkg-config fuse --cflags --libs` FileHelper.o
+	g++ -Wall -O2 -o bin/Accelerator Accelerator.o `pkg-config fuse --cflags --libs` FileHelper.o
 
 Accelerator.o : Accelerator.cpp
 	g++ -Wall -O2 -c Accelerator.cpp `pkg-config fuse --cflags --libs` -o Accelerator.o
@@ -16,4 +16,4 @@ FileHelper.o : FileHelper.cpp
 clean :
 	rm -rf *.o *~
 cleanall :
-	rm -rf accelerator *.o *~
+	rm -rf bin/Accelerator *.o *~
