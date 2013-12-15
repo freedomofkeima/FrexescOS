@@ -7,17 +7,44 @@
 
 #define FUSE_USE_VERSION 26
 
-
 #include "Accelerator.h"
 
-char* rootdir;
+FileHelper fs;
 
 /**
   * Implementation of getattr
   */
 static int sister_getattr(const char *path, struct stat *stbuf)
 {
-	return 0;
+	int res = -ENOENT;
+
+	//res = lstat(path, stbuf);
+	//if (res == -1)
+	//	return -errno;
+
+	time_t test_time = time(0); // current time
+	memset(stbuf, 0, sizeof(struct stat));
+
+	if (strcmp(path, "/") == 0) { // ROOT Directory
+		stbuf->st_mode = S_IFDIR | 0755;
+		stbuf->st_nlink = 2;
+		res = 0;
+	}
+
+	for (int i = 0; i < 32; i++) { // if exact match
+		if (fs.root[i].name[0] != '\0') { // not NULL
+			if (strcmp(fs.root[i].name, "dummy.txt") == 0 && strcmp(path, "/") != 0) {
+				cout << "test" << endl;
+				stbuf->st_mode = S_IFREG | 0444;
+				stbuf->st_nlink = 1;
+				stbuf->st_mtime = test_time;
+				stbuf->st_size = fs.root[i].file_size;
+				res = 0;
+			}
+		}
+	}
+
+	return res;
 }
 
 /**
@@ -26,26 +53,32 @@ static int sister_getattr(const char *path, struct stat *stbuf)
 static int sister_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 		       off_t offset, struct fuse_file_info *fi)
 {
-	DIR *dp;
-	struct dirent *de;
+	//DIR *dp;
+	//struct dirent *de;
 
 	(void) offset;
 	(void) fi;
 
-	dp = opendir(path);
-	if (dp == NULL)
-		return -errno;
+	if (strcmp(path, "/") != 0)
+		return -ENOENT;
 
-	while ((de = readdir(dp)) != NULL) {
+	filler(buf, ".", NULL, 0);
+	filler(buf, "..", NULL, 0);
+
+	char *hello_path = "/dummy.txt";
+	filler(buf, hello_path + 1, NULL, 0);
+	
+
+	/*while ((de = readdir(dp)) != NULL) {
 		struct stat st;
 		memset(&st, 0, sizeof(st));
 		st.st_ino = de->d_ino;
 		st.st_mode = de->d_type << 12;
 		if (filler(buf, de->d_name, &st, 0))
 			break;
-	}
+	}*/
 
-	closedir(dp);
+	//closedir(dp);
 	return 0;
 }
 
@@ -58,7 +91,7 @@ static int sister_mknod(const char *path, mode_t mode, dev_t rdev)
 
 	/* On Linux this could just be 'mknod(path, mode, rdev)' but this
 	   is more portable */
-	if (S_ISREG(mode)) {
+	/*if (S_ISREG(mode)) {
 		res = open(path, O_CREAT | O_EXCL | O_WRONLY, mode);
 		if (res >= 0)
 			res = close(res);
@@ -67,7 +100,7 @@ static int sister_mknod(const char *path, mode_t mode, dev_t rdev)
 	else
 		res = mknod(path, mode, rdev);
 	if (res == -1)
-		return -errno; 
+		return -errno; */
 
 	return 0;
 }
@@ -79,9 +112,9 @@ static int sister_mkdir(const char *path, mode_t mode)
 {
 	int res;
 
-	res = mkdir(path, mode);
+	/*res = mkdir(path, mode);
 	if (res == -1)
-		return -errno;
+		return -errno;*/
 
 	return 0;
 }
@@ -93,9 +126,9 @@ static int sister_rmdir(const char *path)
 {
 	int res;
 
-	res = rmdir(path);
+	/*res = rmdir(path);
 	if (res == -1)
-		return -errno;
+		return -errno;*/
 
 	return 0;
 }
@@ -107,9 +140,9 @@ static int sister_rename(const char *from, const char *to)
 {
 	int res;
 
-	res = rename(from, to);
+	/*res = rename(from, to);
 	if (res == -1)
-		return -errno;
+		return -errno;*/
 
 	return 0;
 }
@@ -121,9 +154,9 @@ static int sister_truncate(const char *path, off_t size)
 {
 	int res;
 
-	res = truncate(path, size);
+	/*res = truncate(path, size);
 	if (res == -1)
-		return -errno;
+		return -errno; */
 
 	return 0;
 }
@@ -135,11 +168,11 @@ static int sister_open(const char *path, struct fuse_file_info *fi)
 {
 	int res;
 
-	res = open(path, fi->flags);
+	/*res = open(path, fi->flags);
 	if (res == -1)
 		return -errno;
 
-	close(res); 
+	close(res); */
 	return 0;
 }
 
@@ -150,7 +183,7 @@ static int sister_read(const char *path, char *buf, size_t size, off_t offset,
 		    struct fuse_file_info *fi)
 {
 	int res = 0;
-	int fd;
+	/*int fd;
 
 	(void) fi;
 	fd = open(path, O_RDONLY);
@@ -161,7 +194,7 @@ static int sister_read(const char *path, char *buf, size_t size, off_t offset,
 	if (res == -1)
 		res = -errno;
 
-	close(fd); 
+	close(fd); */ 
 	return res;
 }
 
@@ -172,7 +205,7 @@ static int sister_write(const char *path, const char *buf, size_t size,
 		     off_t offset, struct fuse_file_info *fi)
 {
 	int res = 0;
-	int fd;
+	/*int fd;
 
 	(void) fi;
 	fd = open(path, O_WRONLY);
@@ -183,7 +216,7 @@ static int sister_write(const char *path, const char *buf, size_t size,
 	if (res == -1)
 		res = -errno;
 
-	close(fd); 
+	close(fd); */
 	return res;
 }
 
@@ -205,7 +238,6 @@ static struct sister_fuse_operations: fuse_operations {
 } sister_oper;
 
 int main(int argc, char *argv[]) {
-	FileHelper fs;
 	/** Parsing parameter */
 	string filename = "";
 	for (int i = 0; i < argc; i++) {
@@ -216,9 +248,7 @@ int main(int argc, char *argv[]) {
 			argc--; i--;
 		}
 	}
-	rootdir = realpath(argv[argc-2], NULL);
-	cout << rootdir << endl;
-	fs.readFile(filename);
+	//fs.readFile(filename);
 
 	//umask(0);
 	return fuse_main(argc, argv, &sister_oper, NULL);

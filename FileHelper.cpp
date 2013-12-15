@@ -167,7 +167,6 @@ void FileHelper::readFile(string filename) {
 	char* buffer = (char*) malloc (sizeof(char) * POOL_OFFSET);
 	if (buffer == NULL) cout << "Memory Error!" << endl;
 	int result = fread(buffer, 1, POOL_OFFSET, file);
-	fclose(file);
 
 	unsigned char* temp = new unsigned char[4];
 	/** Volume Information */
@@ -189,13 +188,64 @@ void FileHelper::readFile(string filename) {
 
 	/** Root Directory */
 	// 1024 Byte (ROOT_OFFSET - ROOT_OFFSET + 1023)
+	for (int i = 0; i < 32; i++) {
+		fseek(file, ROOT_OFFSET + i * 32, SEEK_SET);
+		char* temp_buffer = (char*) malloc (sizeof(char) * 32);
+		if (temp_buffer == NULL) cout << "Memory Error!" << endl;
+		result = fread(temp_buffer, 1, 32, file); // read the next 32 bytes
+		if (temp_buffer[0] != '\0') {
+			/* filename */
+			for (int j = 0; j < 21; j++) {
+				if (temp_buffer[j] != '\0') {
+					root[i].name[j] = temp_buffer[j];
+				} else {
+					root[i].name[j] = '\0';
+					break;
+				}
+			}
+	
+			/* attributes */
+			/* 0 = readonly, 1 = hidden, 2 = archive, 3 = dir */
+			root[i].attribute = temp_buffer[21];
+	
+			/* time */
+			root[i].hour[1] = temp_buffer[22];
+			root[i].hour[0] = temp_buffer[23];
+	
+			/* date */
+			root[i].date[1] = temp_buffer[24];
+			root[i].date[0] = temp_buffer[25];
+	
+			/* first block */
+			unsigned char dread[2];
+			dread[1] = temp_buffer[26];
+			dread[0] = temp_buffer[27];
+			root[i].block_pointer = convert2CharToInt(dread);
+	
+			/* file size */
+			unsigned char dreads[4];
+			dreads[3] = temp_buffer[28];
+			dreads[2] = temp_buffer[29];
+			dreads[1] = temp_buffer[30];
+			dreads[0] = temp_buffer[31];
+			root[i].file_size = convertCharToInt(dreads);
+		} else {
+			for (int j = 0; j < 21; j++) root[i].name[j] = '\0';
+			root[i].attribute = '\0';
+			root[i].hour[0] = '\0'; root[i].hour[1] = '\0';
+			root[i].date[0] = '\0';	root[i].date[1] = '\0';
+			root[i].block_pointer = 0;
+			root[i].file_size = 0;
+		}
+	}
+
+	fclose(file);
 
 	printInfo();
 	parseFileInfo(getDataPool("sister.fs", 1));
 }
 
 /** Read Data Pool (block 1 - 65534) */
-// NOTE : UNTESTED
 char* FileHelper::readDataPool(string filename, int block) {
 	char* buffer = (char*) malloc (sizeof(char) * BLOCK_SIZE);
 	FILE *file;
@@ -206,8 +256,26 @@ char* FileHelper::readDataPool(string filename, int block) {
 	return buffer;
 }
 
+/** Update Root Directory (Assumption: filename is not NULL) */
+void FileHelper::updateRootDirectory(string filename, char* data) {
+	FILE *file;
+	file = fopen(filename.c_str(), "rb+");
+	for (int i = 0; i < 32; i++) {
+		char* temp_buffer = (char*) malloc (sizeof(char) * 1);
+		fseek(file, ROOT_OFFSET + i * 32, SEEK_SET);
+		int result = fread(temp_buffer, 1, 1, file);
+		if (temp_buffer[0] == '\0') {
+			for (int j = 0; j < 32; j++) {
+				fseek(file, ROOT_OFFSET + i * 32 + j, SEEK_SET);
+				fputc(data[j], file);
+			}
+			break;
+		}
+	}
+	fclose(file);
+}
+
 /** Update Data Pool (block 1 - 65534) */
-// NOTE : UNTESTED
 void FileHelper::updateDataPool(string filename, int block, char* data) {
 	FILE *file;
 	file = fopen(filename.c_str(), "rb+");
@@ -227,17 +295,7 @@ void FileHelper::parseFileInfo(file_info infos) {
 	unsigned int s = 0, m = 0, h = 0, d = 0, M = 0, y = 0;
 	unsigned int tt = convert2CharToInt(infos.hour);
 	unsigned int temps = tt;
-	cout << tt << endl;
-	/*
-	string ss = "";
-	while (tt > 0) {
-		ss.push_back(tt%2+'0');
-		tt/=2;
-	}
-	reverse(ss.begin(), ss.end());
-	cout << ss << endl;
-	tt = temps;
-	*/
+
 	temps >>= 5;
 	temps <<= 5;
 	s = tt-temps;
@@ -260,9 +318,9 @@ void FileHelper::parseFileInfo(file_info infos) {
 	temps = 0 + d + (M << 5);
 	y = 2010 + ((tt-temps) >> 9);
 	
-	printf("%u %u %u %u %u %u\n", s, m, h, d, M, y);
-	cout << infos.name << endl;
-	cout << infos.file_size << endl;
+	//printf("%u %u %u %u %u %u\n", s, m, h, d, M, y);
+	//cout << infos.name << endl;
+	//cout << infos.file_size << endl;
 }
 
 file_info FileHelper::getDataPool(string filename, int block) {
@@ -270,7 +328,7 @@ file_info FileHelper::getDataPool(string filename, int block) {
 	char* dataread = readDataPool(filename, block);
 	
 	/* filename */
-	for (int i = 0; i < 20; i++) {
+	for (int i = 0; i < 21; i++) {
 		if (dataread[i] != '\0') {
 			infos.name[i] = dataread[i];
 		} else {
@@ -330,7 +388,7 @@ void FileHelper::createDummy() {
 	memset(datacontent, 0, sizeof(datacontent));
 	memset(data, 0, sizeof(data));
 	
-	int filesize = 0;
+	int filesize = 1000;
 	string filename = "dummy.txt";
 	
 	/* FILENAME */
@@ -385,6 +443,8 @@ void FileHelper::createDummy() {
 	
 	/* WRITE TO DATA POOL */
 	updateDataPool("sister.fs", first_pointer, data);
+	// Update Root Directory
+	updateRootDirectory("sister.fs", data);
 	
 	/* DEC EMPTY_BLOCK BY 1 */
 	empty_block--;
@@ -399,5 +459,6 @@ void FileHelper::createDummy() {
 	empty_block--;
 	
 	/** UPDATE VOLUME INFORMATION */
+	readFile("sister.fs");
 	writeFile("sister.fs", false);
 }
