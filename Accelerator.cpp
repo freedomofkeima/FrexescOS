@@ -259,13 +259,17 @@ int main(int argc, char *argv[]) {
 	/** Parsing parameter */
 	string filename = "";
 	for (int i = 0; i < argc; i++) {
-		if (string(argv[i]) == "new") fs.createNew(filename, "newPartition");
-		if (string(argv[i]).find(".fs")!=std::string::npos) filename = string(argv[i]);
+		if (string(argv[i]) == "new") fs.createNew("newPartition");
+		if (string(argv[i]).find(".fs")!=std::string::npos) {
+			filename = string(argv[i]);
+			fs.filename = filename;
+		}
 		if (string(argv[i]).find(".fs")!=std::string::npos || string(argv[i]) == "new") {
 			for (int j = i; j < argc - 1; j++) argv[j] = argv[j+1];
 			argc--; i--;
 		}
 	}
+	if (filename == "") return -1; // exception
 	//fs.readFile(filename);
 
 	return fuse_main(argc, argv, &sister_oper, NULL);

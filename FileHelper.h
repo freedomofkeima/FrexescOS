@@ -45,6 +45,7 @@ int convert2CharToInt(unsigned char input[2]);
 
 class FileHelper {
 	public:
+		string filename; // filename
 		/** Volume Information */
 		string volumeName; // volume name
 		int empty_block; // out of 65534
@@ -56,22 +57,26 @@ class FileHelper {
 
 		FileHelper(); // default constructor
 
-		void createNew(string, string); // create a new filesystem
-		void writeFile(string, bool); // write to a file
-		void readFile(string); // read from file
+		void createNew(string); // create a new filesystem
+		void writeFile(bool); // write to a file
+		void readFile(); // read from file
 		
-		char* readDataPool(string, int); // read Data Pool from certain block
-		void updateRootDirectory(string, char*); // update Root Directory (seek first)
-		void updateDataPool(string, int, char*); // update Data Pool at certain block
+		char* readDataPool(int); // read Data Pool from certain block
+		void updateRootDirectory(char*); // update Root Directory (seek first)
+		void updateDataPool(int, char*); // update Data Pool at certain block
 
 		void printInfo(); // print info to screen
-		file_info getDataPool(string, int);
+		file_info getDataPool(int);
 		void parseFileInfo(file_info);
 		void createDummy();
 		void createDir(string);
 		bitset<4> getAttr(char);
-		void deleteRootDirectory(string, int);
+		void deleteRootDirectory(int);
 		void rmDir(int);
+
+		int newSAT(); // Creating new file / directory and returning SAT address block
+		void nextSAT(int, char*, int); // Reserving SAT based on block_pointer and file size
+		void removeSAT(int); // Remove SAT based on block_pointer till zero indices
 };
 
 #endif

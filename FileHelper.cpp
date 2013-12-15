@@ -50,7 +50,7 @@ int convert2CharToInt(unsigned char input[2]) {
 
 FileHelper::FileHelper() {}
 
-void FileHelper::createNew(string filename, string name) {
+void FileHelper::createNew(string name) {
 	if (name == "") volumeName = "sisterFS";
 	else volumeName = name;
 
@@ -71,11 +71,11 @@ void FileHelper::createNew(string filename, string name) {
 	}
 
 	ofstream new_file(filename.c_str()); // create a new file for filesystem
-	writeFile(filename, true); // write to new filesystem
+	writeFile(true); // write to new filesystem
 	createDummy(); // create a dummy file
 }
 
-void FileHelper::writeFile(string filename, bool isNew) {
+void FileHelper::writeFile(bool isNew) {
 	FILE *file;
 	file = fopen(filename.c_str(), "rb+"); // open file
 	unsigned char* temp;
@@ -153,7 +153,7 @@ void FileHelper::writeFile(string filename, bool isNew) {
 	fclose(file);
 }
 
-void FileHelper::readFile(string filename) {
+void FileHelper::readFile() {
 	FILE *file;
 	file = fopen(filename.c_str(), "rb");
 	char* buffer = (char*) malloc (sizeof(char) * POOL_OFFSET);
@@ -244,11 +244,11 @@ void FileHelper::readFile(string filename) {
 	fclose(file);
 
 	printInfo();
-	parseFileInfo(getDataPool("sister.fs", 1));
+	parseFileInfo(getDataPool(1));
 }
 
 /** Read Data Pool (block 1 - 65534) */
-char* FileHelper::readDataPool(string filename, int block) {
+char* FileHelper::readDataPool(int block) {
 	char* buffer = (char*) malloc (sizeof(char) * BLOCK_SIZE);
 	FILE *file;
 	file = fopen(filename.c_str(), "rb");
@@ -259,7 +259,7 @@ char* FileHelper::readDataPool(string filename, int block) {
 }
 
 /** Update Root Directory (Assumption: filename is not NULL) */
-void FileHelper::updateRootDirectory(string filename, char* data) {
+void FileHelper::updateRootDirectory(char* data) {
 	FILE *file;
 	file = fopen(filename.c_str(), "rb+");
 	for (int i = 0; i < 32; i++) {
@@ -278,7 +278,7 @@ void FileHelper::updateRootDirectory(string filename, char* data) {
 }
 
 /** Delete Root Directory Entry */
-void FileHelper::deleteRootDirectory(string filename, int num) {
+void FileHelper::deleteRootDirectory(int num) {
 	FILE *file;
 	file = fopen(filename.c_str(), "rb+");
 	for (int j = 0; j < 32; j++) {
@@ -286,11 +286,11 @@ void FileHelper::deleteRootDirectory(string filename, int num) {
 		fputc(0, file);
 	}
 	fclose(file);
-	readFile("sister.fs");
+	readFile();
 }
 
 /** Update Data Pool (block 1 - 65534) */
-void FileHelper::updateDataPool(string filename, int block, char* data) {
+void FileHelper::updateDataPool(int block, char* data) {
 	FILE *file;
 	file = fopen(filename.c_str(), "rb+");
 	for (int i = 0; i < BLOCK_SIZE; i++) {
@@ -337,9 +337,9 @@ void FileHelper::parseFileInfo(file_info infos) {
 	//cout << infos.file_size << endl;
 }
 
-file_info FileHelper::getDataPool(string filename, int block) {
+file_info FileHelper::getDataPool(int block) {
 	file_info infos;
-	char* dataread = readDataPool(filename, block);
+	char* dataread = readDataPool(block);
 	
 	/* filename */
 	for (int i = 0; i < 21; i++) {
@@ -446,7 +446,8 @@ void FileHelper::createDummy() {
 	temp = convert2IntToChar(tanggal);
 	data[24] = temp[0];
 	data[25] = temp[1];
-	temp = convert2IntToChar(first_pointer+1);
+	int new_pointer = newSAT(); // new SAT
+	temp = convert2IntToChar(new_pointer);
 	data[26] = temp[0];
 	data[27] = temp[1];
 	temp = convertIntToChar(filesize);
@@ -456,28 +457,30 @@ void FileHelper::createDummy() {
 	data[31] = temp[3];
 	
 	/* WRITE TO DATA POOL */
-	updateDataPool("sister.fs", first_pointer, data);
+	updateDataPool(new_pointer, data);
 	// Update Root Directory
-	updateRootDirectory("sister.fs", data);
+	updateRootDirectory(data);
 	
 	/* DEC EMPTY_BLOCK BY 1 */
-	empty_block--;
+	//empty_block--;
 	/* MOVE TO NEXT EMPTY */
-	first_pointer++;
+	//first_pointer++;
 	
 	/* WRITE TO DATA POOL */
-	updateDataPool("sister.fs", first_pointer, datacontent);
+	datacontent = (char*) "Hello SISTERS!";
+	nextSAT(new_pointer, datacontent, filesize);
+
 	/* MOVE TO NEXT EMPTY */
-	first_pointer++;
+	//first_pointer++;
 	/* DEC EMPTY_BLOCK BY 1 */
-	empty_block--;
+	//empty_block--;
 	
 	/** UPDATE VOLUME INFORMATION */
-	readFile("sister.fs");
-	writeFile("sister.fs", false);
+	readFile();
+	writeFile(false);
 }
 
-void FileHelper::createDir(string filename) {
+void FileHelper::createDir(string pathname) {
 	char* data = (char*) malloc (sizeof(char) * BLOCK_SIZE);
 	
 	memset(data, 0, sizeof(data));
@@ -485,10 +488,10 @@ void FileHelper::createDir(string filename) {
 	int filesize = 0;
 	
 	/* FILENAME */
-	for (int i = 0; i < filename.size(); i++) {
-		data[i] = filename[i];
+	for (int i = 0; i < pathname.size(); i++) {
+		data[i] = pathname[i];
 	}
-	data[filename.size()] = '\0';
+	data[pathname.size()] = '\0';
 	
 	/* ATRIBUT */
 	data[21] = 8;
@@ -525,7 +528,8 @@ void FileHelper::createDir(string filename) {
 	temp = convert2IntToChar(tanggal);
 	data[24] = temp[0];
 	data[25] = temp[1];
-	temp = convert2IntToChar(first_pointer+1);
+	int new_pointer = newSAT(); // new SAT
+	temp = convert2IntToChar(new_pointer);
 	data[26] = temp[0];
 	data[27] = temp[1];
 	temp = convertIntToChar(filesize);
@@ -535,18 +539,18 @@ void FileHelper::createDir(string filename) {
 	data[31] = temp[3];
 	
 	/* WRITE TO DATA POOL */
-	updateDataPool("sister.fs", first_pointer, data);
+	updateDataPool(first_pointer, data);
 	// Update Root Directory
-	updateRootDirectory("sister.fs", data);
+	updateRootDirectory(data);
 	
 	/* DEC EMPTY_BLOCK BY 1 */
-	empty_block--;
+	//empty_block--;
 	/* MOVE TO NEXT EMPTY */
-	first_pointer++;
+	//first_pointer++;
 	
 	/** UPDATE VOLUME INFORMATION */
-	readFile("sister.fs");
-	writeFile("sister.fs", false);
+	readFile();
+	writeFile(false);
 }
 
 bitset<4> FileHelper::getAttr(char c) {
@@ -559,5 +563,32 @@ bitset<4> FileHelper::getAttr(char c) {
 }
 
 void FileHelper::rmDir(int num) {
-	deleteRootDirectory("sister.fs", num);
+	removeSAT(root[num].block_pointer);
+	deleteRootDirectory(num);
 }
+
+/* Creating new file / directory and returning SAT address block */
+int FileHelper::newSAT() {
+
+	// reserve first block
+
+	// increase first_pointer by one and return it
+}
+
+/* Reserving SAT based on block_pointer and file size */
+void FileHelper::nextSAT(int block_pointer, char* data_content, int file_size) {
+//updateDataPool(first_pointer, datacontent);
+
+	// reduce block sizes
+
+	// increase first_pointer
+}
+
+/* Remove SAT based on block_pointer till zero indices */
+void FileHelper::removeSAT(int block_pointer) {
+
+	// free block sizes
+
+	// decrease first_pointer
+}
+
