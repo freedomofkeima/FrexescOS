@@ -73,6 +73,7 @@ void FileHelper::createNew(string name) {
 	ofstream new_file(filename.c_str()); // create a new file for filesystem
 	writeFile(true); // write to new filesystem
 	createDummy(); // create a dummy file
+	readFile();
 }
 
 void FileHelper::writeFile(bool isNew) {
@@ -211,12 +212,12 @@ void FileHelper::readFile() {
 			root[i].attribute = temp_buffer[21];
 	
 			/* time */
-			root[i].hour[1] = temp_buffer[22];
-			root[i].hour[0] = temp_buffer[23];
+			root[i].hour[0] = temp_buffer[22];
+			root[i].hour[1] = temp_buffer[23];
 	
 			/* date */
-			root[i].date[1] = temp_buffer[24];
-			root[i].date[0] = temp_buffer[25];
+			root[i].date[0] = temp_buffer[24];
+			root[i].date[1] = temp_buffer[25];
 	
 			/* first block */
 			unsigned char dread[2];
@@ -353,7 +354,10 @@ void FileHelper::updateDataPool(int block, char* data) {
 
 time_t FileHelper::getTimeInfo(file_info infos) {
 	unsigned int s = 0, m = 0, h = 0, d = 0, M = 0, y = 0;
-	unsigned int tt = convert2CharToInt(infos.hour);
+	unsigned char temp[2];
+	temp[1] = infos.hour[0];
+	temp[0] = infos.hour[1];
+	unsigned int tt = convert2CharToInt(temp);
 	unsigned int temps = tt;
 
 	temps >>= 5;
@@ -366,7 +370,9 @@ time_t FileHelper::getTimeInfo(file_info infos) {
 	temps = 0 + s + (m << 5);
 	h = (tt-temps) >> 11;
 	
-	tt = convert2CharToInt(infos.date);
+	temp[1] = infos.date[0];
+	temp[0] = infos.date[1];
+	tt = convert2CharToInt(temp);
 	temps = tt;
 	temps >>= 5;
 	temps <<= 5;
@@ -379,13 +385,13 @@ time_t FileHelper::getTimeInfo(file_info infos) {
 	y = 2010 + ((tt-temps) >> 9);
 	
 	struct tm timeinfo;
-	timeinfo.tm_year = y;
-	timeinfo.tm_mon = M;
+	timeinfo.tm_year = y-1900;
+	timeinfo.tm_mon = M-1;
 	timeinfo.tm_mday = d;
 	timeinfo.tm_hour = h;
 	timeinfo.tm_min = m;
 	timeinfo.tm_sec = s;
-	
+	printf("%u %u %u %u %u %u\n", y, M, d, h, m, s);
 	time_t raw = mktime(&timeinfo);
 	return raw;
 }
@@ -409,12 +415,12 @@ file_info FileHelper::getDataPool(int block) {
 	infos.attribute = dataread[21];
 	
 	/* time */
-	infos.hour[1] = dataread[22];
-	infos.hour[0] = dataread[23];
+	infos.hour[0] = dataread[22];
+	infos.hour[1] = dataread[23];
 	
 	/* date */
-	infos.date[1] = dataread[24];
-	infos.date[0] = dataread[25];
+	infos.date[0] = dataread[24];
+	infos.date[1] = dataread[25];
 	
 	/* first block */
 	unsigned char dread[2];
