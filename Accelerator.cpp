@@ -268,7 +268,22 @@ static int sister_read(const char *path, char *buf, size_t size, off_t offset,
 static int sister_write(const char *path, const char *buf, size_t size,
 		     off_t offset, struct fuse_file_info *fi)
 {
-	int res = 0;
+	int res = -ENOENT, idx = 0;
+
+	for (int i = 0; i < 32; i++) { // if exact match
+		if (fs.root[i].name[0] != '\0') { // not NULL
+			char bname[22]; strcpy(bname, "/"); strcat(bname, fs.root[i].name);
+			if (strcmp(bname, path) == 0) {
+				idx = i;
+				if (fs.root[i].attribute & (1 << 0)) res = -EACCES;
+				else res = 0;
+			}
+		}
+	}
+
+	if (res == 0) {
+
+	}
 	/*int fd;
 
 	(void) fi;
