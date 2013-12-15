@@ -607,12 +607,19 @@ void FileHelper::truncateFile(int num, int size) {
 
 /** Create new file (for truncate) */
 void FileHelper::newFile(file_info info, char* data) {
-
+	// Update Root Directory
+	updateRootDirectory(info);
+	// Update Data Pool (with SAT function, automatically update Volume Information)
+	
 }
 
 /** Create new file */
 void FileHelper::newFile(char* data) {
+	// Generate file_info
+	file_info newfile_info;
 
+	// Continue at:
+	newFile(newfile_info, data);
 }
 
 /* Get SAT at certain index */
