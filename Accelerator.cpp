@@ -220,11 +220,20 @@ static struct sister_fuse_operations: fuse_operations {
 
 int main(int argc, char *argv[]) {
 	FileHelper fs;
-	for (int i = 0; i < argc; i++)
-		if (string(argv[i]) == "new") fs.createNew("sister.fs", "newPartition");
-	fs.readFile("sister.fs");
-	//umask(0);
-	//return fuse_main(argc, argv, &sister_oper, NULL);
+	/** Parsing parameter */
+	string filename = "";
+	for (int i = 0; i < argc; i++) {
+		if (string(argv[i]) == "new") fs.createNew(filename, "newPartition");
+		if (string(argv[i]).find(".fs")!=std::string::npos) filename = string(argv[i]);
+		if (string(argv[i]).find(".fs")!=std::string::npos || string(argv[i]) == "new") {
+			for (int j = i; j < argc - 1; j++) argv[j] = argv[j+1];
+			argc--; i--;
+		}
+	}
+	fs.readFile(filename);
 
-	return 0;
+	//umask(0);
+	return fuse_main(argc, argv, &sister_oper, NULL);
+
+	//return 0;
 }
