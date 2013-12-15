@@ -25,11 +25,11 @@
   */
 static int sister_getattr(const char *path, struct stat *stbuf)
 {
-	/*int res;
+	int res;
 
 	res = lstat(path, stbuf);
 	if (res == -1)
-		return -errno;*/
+		return -errno;
 
 	return 0;
 }
