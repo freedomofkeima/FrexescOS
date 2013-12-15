@@ -309,6 +309,37 @@ void FileHelper::deleteRootDirectory(int num) {
 	readFile();
 }
 
+/** Update Data Pool using file_info (block 1 - 65534) */
+void FileHelper::updateDataPool(int block, file_info info) {
+	FILE *file;
+	file = fopen(filename.c_str(), "rb+");
+
+	char temp_info[32];
+
+	for (int i = 0; i < 21; i++) temp_info[i] = info.name[i];
+	temp_info[21] = info.attribute;
+	temp_info[22] = info.hour[0];
+	temp_info[23] = info.hour[1];
+	temp_info[24] = info.date[0];
+	temp_info[25] = info.date[1];
+		
+	unsigned char* temp2;
+	temp2 = convert2IntToChar(info.block_pointer);
+	for (int j = 0; j < 2; j++) temp_info[26 + j] = temp2[j];
+	temp2 = convertIntToChar(info.file_size);
+	for (int j = 0; j < 4; j++) temp_info[28 + j] = temp2[j];
+
+	for (int i = 0; i < 32; i++) {
+		fseek(file, POOL_OFFSET + (block - 1) * 1024 + i, SEEK_SET);
+		fputc(temp_info[i], file);
+	}
+	for (int i = 32; i < BLOCK_SIZE; i++) {
+		fseek(file, POOL_OFFSET + (block - 1) * 1024 + i, SEEK_SET);
+		fputc(0, file);
+	}
+	fclose(file);
+}
+
 /** Update Data Pool (block 1 - 65534) */
 void FileHelper::updateDataPool(int block, char* data) {
 	FILE *file;
@@ -424,7 +455,7 @@ void FileHelper::createDummy() {
 	memset(datacontent, 0, sizeof(datacontent));
 	memset(data, 0, sizeof(data));
 	
-	int filesize = 1000;
+	int filesize = 14;
 	string filename = "dummy.txt";
 	
 	/* FILENAME */
@@ -580,9 +611,25 @@ void FileHelper::truncateFile(int num, int size) {
 	if (root[num].file_size == 0) root[num].file_size = 1; // prevent error
 	char* oldContent = (char*) malloc (sizeof(char) * (root[num].file_size - 1));
 	if (size == 0) size = 1; // prevent error
-	char* newContent = (char*) malloc (sizeof(char) * (root[num].file_size - 1));
+	char* newContent = (char*) malloc (sizeof(char) * (size - 1));
 
-	/** Read oldContent (Call READ) */
+	/** Read oldContent (Call READ) [Note: Data is started from 2nd Pointer] */
+	int current_pointer;
+	for (int i = 0; i <= ((root[num].file_size - 1) / 1024); i++) { // file_size > 0
+		char* tempContent = (char*) malloc (sizeof(char) * BLOCK_SIZE);
+		// indexing
+		int lower_bound = i * BLOCK_SIZE;
+		int upper_bound = (i + 1) * BLOCK_SIZE - 1;
+		if (i == ((root[num].file_size - 1) / 1024)) upper_bound = root[num].file_size - 1;
+		current_pointer = getSAT(root[num].block_pointer);
+		tempContent = readDataPool(current_pointer);
+		int idx = 0;
+		for (int j = lower_bound; j <= upper_bound; j++) {
+			oldContent[j] = tempContent[idx];
+			idx++; // next element
+		}
+	}
+	/** End of reading */
 
 	for (int i = 0; i < root[num].file_size; i++) {
 		if (i == size) break; // maximum capacity is lower
@@ -609,10 +656,53 @@ void FileHelper::truncateFile(int num, int size) {
 
 /** Create new file (for truncate) */
 void FileHelper::newFile(file_info info, char* data) {
+	// Update Data Pool (with SAT function, automatically update Volume Information)
+	/* GET SYSTEM TIME */
+	time_t t;
+	t = time(0);
+	struct tm *timer;
+	timer = localtime(&t);
+	
+	/* GET JAM */
+	int h = timer->tm_hour;
+	int m = timer->tm_min;
+	int s = timer->tm_sec; s = s/2 + s%2;
+	int jam = 0;
+	jam += h << 11;
+	jam += m << 5;
+	jam += s;
+	
+	/* GET TANGGAL */
+	int y = timer->tm_year;	y -= 110;
+	int M = timer->tm_mon; M++;
+	int d = timer->tm_mday;
+	int tanggal = 0;
+	tanggal += y << 9;
+	tanggal += M << 5;
+	tanggal += d;
+	
+	/* CONVERT JAM, TANGGAL, FIRST BLOCK, FILESIZE MASUKIN KE DATA */
+	unsigned char* temp;
+	temp = convert2IntToChar(jam);
+	info.hour[0] = temp[0];
+	info.hour[1] = temp[1];
+	temp = convert2IntToChar(tanggal);
+	info.date[0] = temp[0];
+	info.date[1] = temp[1];
+	info.block_pointer = newSAT(); // new SAT
+
+	/* WRITE TO DATA POOL */
+	updateDataPool(info.block_pointer, info);
 	// Update Root Directory
 	updateRootDirectory(info);
-	// Update Data Pool (with SAT function, automatically update Volume Information)
+	readFile();
+
+	/* WRITE TO DATA POOL */
+	nextSAT(info.block_pointer, data, info.file_size);
 	
+	/** UPDATE VOLUME INFORMATION */
+	readFile();
+	writeFile(false);
 }
 
 /** Create new file */
