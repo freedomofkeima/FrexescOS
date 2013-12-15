@@ -59,7 +59,7 @@ void FileHelper::createNew(string name) {
 
 	for (int i = 0; i < 128; i++) // SAT initialize
 		for (int j = 0; j < BLOCK_SIZE; j++)
-			sat[i].buffer[j] = '0';
+			sat[i].buffer[j] = 0;
 
 	for (int i = 0; i < 32; i++) { // ROOT initialize
 		for (int j = 0; j < 21; j++) root[i].name[j] = '\0';
@@ -460,20 +460,11 @@ void FileHelper::createDummy() {
 	updateDataPool(new_pointer, data);
 	// Update Root Directory
 	updateRootDirectory(data);
-	
-	/* DEC EMPTY_BLOCK BY 1 */
-	//empty_block--;
-	/* MOVE TO NEXT EMPTY */
-	//first_pointer++;
-	
+	readFile();
+
 	/* WRITE TO DATA POOL */
 	datacontent = (char*) "Hello SISTERS!";
 	nextSAT(new_pointer, datacontent, filesize);
-
-	/* MOVE TO NEXT EMPTY */
-	//first_pointer++;
-	/* DEC EMPTY_BLOCK BY 1 */
-	//empty_block--;
 	
 	/** UPDATE VOLUME INFORMATION */
 	readFile();
@@ -542,12 +533,7 @@ void FileHelper::createDir(string pathname) {
 	updateDataPool(first_pointer, data);
 	// Update Root Directory
 	updateRootDirectory(data);
-	
-	/* DEC EMPTY_BLOCK BY 1 */
-	//empty_block--;
-	/* MOVE TO NEXT EMPTY */
-	//first_pointer++;
-	
+
 	/** UPDATE VOLUME INFORMATION */
 	readFile();
 	writeFile(false);
@@ -567,28 +553,101 @@ void FileHelper::rmDir(int num) {
 	deleteRootDirectory(num);
 }
 
+/* Get SAT at certain index */
+int FileHelper::getSAT(int block_index) {
+	int array_num = block_index / 512;
+	int position = (block_index * 2) - (array_num * 512);
+	unsigned char temp[2];
+	temp[1] = sat[array_num].buffer[position];
+	temp[0] = sat[array_num].buffer[position+1];
+	unsigned int results = convert2CharToInt(temp);
+	return results;
+}
+
+/* Set SAT at certain index with certain value */
+void FileHelper::setSAT(int block_index, int value) {
+	unsigned char* temp;
+	temp = convert2IntToChar(value);
+	int array_num = block_index / 512;
+	int position = (block_index * 2) - (array_num * 512);
+	sat[array_num].buffer[position] = temp[0];
+	sat[array_num].buffer[position + 1] = temp[1];
+	writeFile(false);
+}
+
 /* Creating new file / directory and returning SAT address block */
 int FileHelper::newSAT() {
-
-	// reserve first block
-
-	// increase first_pointer by one and return it
+	int counts = 0;
+	int temp = first_pointer;
+	/** Search for next pointer */
+	first_pointer++; // move one
+	if (first_pointer == 65535) first_pointer = 1;
+	while (getSAT(first_pointer) != 0) {
+		first_pointer++; counts++;
+		if (first_pointer == 65535) first_pointer = 1; // round_robin
+		if (counts == 65535) {
+			cout << "Your memory is full!" << endl;
+			break;
+		}
+	}
+	if (counts != 65535) {
+		empty_block--; // decrease empty block by one
+		writeFile(false);
+		return temp;
+	} else return -1;
 }
 
 /* Reserving SAT based on block_pointer and file size */
 void FileHelper::nextSAT(int block_pointer, char* data_content, int file_size) {
-//updateDataPool(first_pointer, datacontent);
-
-	// reduce block sizes
-
-	// increase first_pointer
+	if (file_size == 0) file_size = 1; // prevent error
+	int curr_pointer = block_pointer;
+	for (int i = 0; i <= ((file_size - 1) / 1024); i++) { // file_size > 0
+		char* tempContent = (char*) malloc (sizeof(char) * BLOCK_SIZE);
+		// move all data_content to tempContent
+		int lower_bound = i * BLOCK_SIZE;
+		int upper_bound = (i + 1) * BLOCK_SIZE - 1;
+		int idx = 0; // start from zero-index
+		if (i == ((file_size - 1) / 1024)) upper_bound = file_size - 1;
+		for (int j = lower_bound; j <= upper_bound; j++) {
+			tempContent[idx] = data_content[j];
+			idx++;
+		}
+		// use the first pointer
+		updateDataPool(first_pointer, tempContent);
+		setSAT(curr_pointer, first_pointer);
+		curr_pointer = first_pointer;
+		// search for next
+		int counts = 0;
+		first_pointer++; // move one
+		if (first_pointer == 65535) first_pointer = 1;
+		while (getSAT(first_pointer) != 0) {
+			first_pointer++; counts++;
+			if (first_pointer == 65535) first_pointer = 1; // round_robin
+			if (counts == 65535) {
+				cout << "Your memory is full!" << endl;
+				break;
+			}
+		}
+		if (counts == 65535) break;
+		else {
+			empty_block--; // decrease empty block by one
+			writeFile(false);
+		}
+	}
 }
 
 /* Remove SAT based on block_pointer till zero indices */
 void FileHelper::removeSAT(int block_pointer) {
-
-	// free block sizes
-
-	// decrease first_pointer
+	int memo_pointer = block_pointer;
+	while (getSAT(block_pointer) != 0) {
+		int temp_pointer = getSAT(block_pointer); // list
+		setSAT(block_pointer, 0);
+		empty_block++;
+		block_pointer = temp_pointer; // next_elmt
+	}
+	// final_block
+	empty_block++;
+	first_pointer = memo_pointer;
+	writeFile(false);
 }
 

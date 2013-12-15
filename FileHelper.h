@@ -74,6 +74,8 @@ class FileHelper {
 		void deleteRootDirectory(int);
 		void rmDir(int);
 
+		int getSAT(int); // Get SAT at certain index
+		void setSAT(int, int); // Set SAT at certain index with certain value
 		int newSAT(); // Creating new file / directory and returning SAT address block
 		void nextSAT(int, char*, int); // Reserving SAT based on block_pointer and file size
 		void removeSAT(int); // Remove SAT based on block_pointer till zero indices

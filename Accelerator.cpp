@@ -88,6 +88,7 @@ static int sister_mkdir(const char *path, mode_t mode)
 
 	if (res == -1)
 		return -errno;*/
+	fs.printInfo();
 
 	return res;
 }
@@ -129,11 +130,11 @@ static int sister_rmdir(const char *path)
 		string n(path);
 		if (c == n) {
 			fs.rmDir(i);
-			cout << "LUCU\n";
 			res = 0;
 			break;
 		}
 	}
+	fs.printInfo();
 
 	return res;
 }
@@ -258,7 +259,7 @@ static struct sister_fuse_operations: fuse_operations {
 int main(int argc, char *argv[]) {
 	/** Parsing parameter */
 	string filename = "";
-	for (int i = 0; i < argc; i++) {
+	for (int i = 0; i < argc; i++) { // Depends on new and .fs filename
 		if (string(argv[i]) == "new") fs.createNew("newPartition");
 		if (string(argv[i]).find(".fs")!=std::string::npos) {
 			filename = string(argv[i]);
@@ -270,7 +271,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 	if (filename == "") return -1; // exception
-	//fs.readFile(filename);
+	//fs.readFile();
 
 	return fuse_main(argc, argv, &sister_oper, NULL);
 
