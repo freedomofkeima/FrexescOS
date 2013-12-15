@@ -258,6 +258,26 @@ char* FileHelper::readDataPool(int block) {
 	return buffer;
 }
 
+/** Update Root Directory using file_info (Assumption: filename is not NULL) */
+void FileHelper::updateRootDirectory(file_info info) {
+	char temp_info[32];
+
+	for (int i = 0; i < 21; i++) temp_info[i] = info.name[i];
+	temp_info[21] = info.attribute;
+	temp_info[22] = info.hour[0];
+	temp_info[23] = info.hour[1];
+	temp_info[24] = info.date[0];
+	temp_info[25] = info.date[1];
+		
+	unsigned char* temp2;
+	temp2 = convert2IntToChar(info.block_pointer);
+	for (int j = 0; j < 2; j++) temp_info[26 + j] = temp2[j];
+	temp2 = convertIntToChar(info.file_size);
+	for (int j = 0; j < 4; j++) temp_info[28 + j] = temp2[j];
+
+	updateRootDirectory(temp_info);
+}
+
 /** Update Root Directory (Assumption: filename is not NULL) */
 void FileHelper::updateRootDirectory(char* data) {
 	FILE *file;
@@ -551,6 +571,48 @@ bitset<4> FileHelper::getAttr(char c) {
 void FileHelper::rmDir(int num) {
 	removeSAT(root[num].block_pointer);
 	deleteRootDirectory(num);
+}
+
+/** Truncate File */
+void FileHelper::truncateFile(int num, int size) {
+	if (root[num].file_size == 0) root[num].file_size = 1; // prevent error
+	char* oldContent = (char*) malloc (sizeof(char) * (root[num].file_size - 1));
+	if (size == 0) size = 1; // prevent error
+	char* newContent = (char*) malloc (sizeof(char) * (root[num].file_size - 1));
+
+	/** Read oldContent (Call READ) */
+
+	for (int i = 0; i < root[num].file_size; i++) {
+		if (i == size) break; // maximum capacity is lower
+		newContent[i] = oldContent[i];
+	}
+	// maximum capacity is higher
+	for (int i = root[num].file_size; i < size; i++) newContent[i] = '\0';
+
+	file_info newfile;
+	for (int i = 0; i < 21; i++) newfile.name[i] = root[num].name[i];
+	newfile.attribute = root[num].attribute;
+	newfile.hour[0] = root[num].hour[0]; newfile.hour[1] = root[num].hour[1];
+	newfile.date[0] = root[num].date[0]; newfile.date[1] = root[num].date[1];
+	newfile.block_pointer = root[num].block_pointer;
+	newfile.file_size = size;
+
+	// Remove old entry (You don't need to overwrite data pool)
+	removeSAT(root[num].block_pointer);
+	deleteRootDirectory(num);
+
+	// Add new entry
+	newFile(newfile, newContent);
+}
+
+/** Create new file (for truncate) */
+void FileHelper::newFile(file_info info, char* data) {
+
+}
+
+/** Create new file */
+void FileHelper::newFile(char* data) {
+
 }
 
 /* Get SAT at certain index */

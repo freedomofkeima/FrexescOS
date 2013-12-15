@@ -62,6 +62,7 @@ class FileHelper {
 		void readFile(); // read from file
 		
 		char* readDataPool(int); // read Data Pool from certain block
+		void updateRootDirectory(file_info); // update Root Directory using file_info
 		void updateRootDirectory(char*); // update Root Directory (seek first)
 		void updateDataPool(int, char*); // update Data Pool at certain block
 
@@ -73,6 +74,10 @@ class FileHelper {
 		bitset<4> getAttr(char);
 		void deleteRootDirectory(int);
 		void rmDir(int);
+		
+		void truncateFile(int, int); // Truncate file
+		void newFile(file_info, char*); // Create new file (for truncate)
+		void newFile(char*); // Create new file
 
 		int getSAT(int); // Get SAT at certain index
 		void setSAT(int, int); // Set SAT at certain index with certain value

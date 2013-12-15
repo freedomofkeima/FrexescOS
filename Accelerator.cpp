@@ -34,7 +34,9 @@ static int sister_getattr(const char *path, struct stat *stbuf)
 				if (fs.root[i].attribute & (1 << 3)) { // If directory
 					stbuf->st_mode = S_IFDIR | 0444;
 				} else { // If regular file
-					stbuf->st_mode = S_IFREG | 0444;
+					if (fs.root[i].attribute & (1 << 0)) stbuf->st_mode = S_IFREG | 0444;
+					else if (fs.root[i].attribute & (1 << 2)) stbuf->st_mode = S_IFREG | 0555;
+					else stbuf->st_mode = S_IFREG | 0666;
 				}
 				stbuf->st_nlink = 1;
 				stbuf->st_mtime = test_time; // TODO : change to file time
@@ -88,7 +90,6 @@ static int sister_mkdir(const char *path, mode_t mode)
 
 	if (res == -1)
 		return -errno;*/
-	fs.printInfo();
 
 	return res;
 }
@@ -134,7 +135,6 @@ static int sister_rmdir(const char *path)
 			break;
 		}
 	}
-	fs.printInfo();
 
 	return res;
 }
@@ -166,18 +166,29 @@ static int sister_rename(const char *from, const char *to)
 	return res;
 }
 
+// TODO : Implement newFile at FileHelper.cpp
 /**
   * Implementation of truncate
+  * USAGE EXAMPLE: truncate -s 1k dummy.txt (truncate file to 1024 byte)
   */
 static int sister_truncate(const char *path, off_t size)
 {
-	int res;
+	int res= -ENOENT;
 
-	/*res = truncate(path, size);
-	if (res == -1)
-		return -errno; */
+	for (int i = 0; i < 32; i++) {
+		if (fs.root[i].attribute & (1 << 3)) {} else { // if not a directory
+			string c = ""; string fr(fs.root[i].name); c.push_back('/'); c += fr;
+			string n(path);
+			if (c == n) {
+				// Truncate here
+				fs.truncateFile(i, size);
+				res = 0;
+				break;
+			}
+		}
+	}
 
-	return 0;
+	return res;
 }
 
 /**
@@ -185,14 +196,14 @@ static int sister_truncate(const char *path, off_t size)
   */
 static int sister_open(const char *path, struct fuse_file_info *fi)
 {
-	int res;
+	int res = 0;
 
 	/*res = open(path, fi->flags);
 	if (res == -1)
 		return -errno;
 
 	close(res); */
-	return 0;
+	return res;
 }
 
 /**
