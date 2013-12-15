@@ -7,17 +7,7 @@
 
 #define FUSE_USE_VERSION 26
 
-#include <fuse.h>
-#include <iostream>
-#include <cstdio>
-#include <cstring>
-#include <errno.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <dirent.h>
-#include <sys/time.h>
 
-#include "FileHelper.h"
 #include "Accelerator.h"
 
 /**

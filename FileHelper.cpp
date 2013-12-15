@@ -46,10 +46,13 @@ int convertCharToInt(unsigned char input[4]) {
 }
 
 int convert2CharToInt(unsigned char input[2]) {
-	unsigned int x;
-
-	x = *(int *) input;
-
+	unsigned int x = 0;
+	unsigned char temp[4];
+	temp[3] = 0;
+	temp[2] = 0;
+	temp[1] = input[1];
+	temp[0] = input[0];
+	x = *(int *) temp;
 	return x;
 }
 
@@ -221,9 +224,20 @@ void FileHelper::parseFileInfo(file_info infos) {
 		attrs[i] = infos.attribute & (1 << i);
 	}
 	
-	int s, m, h, d, M, y;
+	unsigned int s = 0, m = 0, h = 0, d = 0, M = 0, y = 0;
 	unsigned int tt = convert2CharToInt(infos.hour);
 	unsigned int temps = tt;
+	cout << tt << endl;
+	/*
+	string ss = "";
+	while (tt > 0) {
+		ss.push_back(tt%2+'0');
+		tt/=2;
+	}
+	reverse(ss.begin(), ss.end());
+	cout << ss << endl;
+	tt = temps;
+	*/
 	temps >>= 5;
 	temps <<= 5;
 	s = tt-temps;
@@ -231,7 +245,7 @@ void FileHelper::parseFileInfo(file_info infos) {
 	temps <<= 11;
 	temps += s;
 	m = (tt-temps) >> 5;
-	temps = 0 + s + m << 5;
+	temps = 0 + s + (m << 5);
 	h = (tt-temps) >> 11;
 	
 	tt = convert2CharToInt(infos.date);
@@ -243,10 +257,10 @@ void FileHelper::parseFileInfo(file_info infos) {
 	temps <<= 9;
 	temps += d;
 	M = (tt-temps) >> 5;
-	temps = 0 + d + M << 5;
-	y = 2010 + (tt-temps) >> 9;
+	temps = 0 + d + (M << 5);
+	y = 2010 + ((tt-temps) >> 9);
 	
-	printf("%d %d %d %d %d %d\n", s, m, h, d, M, y);
+	printf("%u %u %u %u %u %u\n", s, m, h, d, M, y);
 	cout << infos.name << endl;
 	cout << infos.file_size << endl;
 }
@@ -275,7 +289,7 @@ file_info FileHelper::getDataPool(string filename, int block) {
 	
 	/* date */
 	infos.date[1] = dataread[24];
-	infos.hour[0] = dataread[25];
+	infos.date[0] = dataread[25];
 	
 	/* first block */
 	unsigned char dread[2];
@@ -318,8 +332,6 @@ void FileHelper::createDummy() {
 	
 	int filesize = 0;
 	string filename = "dummy.txt";
-	/* MOVE TO NEXT EMPTY */
-	first_pointer++;
 	
 	/* FILENAME */
 	for (int i = 0; i < filename.size(); i++) {
@@ -362,7 +374,7 @@ void FileHelper::createDummy() {
 	temp = convert2IntToChar(tanggal);
 	data[24] = temp[0];
 	data[25] = temp[1];
-	temp = convert2IntToChar(first_pointer);
+	temp = convert2IntToChar(first_pointer+1);
 	data[26] = temp[0];
 	data[27] = temp[1];
 	temp = convertIntToChar(filesize);
@@ -376,6 +388,8 @@ void FileHelper::createDummy() {
 	
 	/* DEC EMPTY_BLOCK BY 1 */
 	empty_block--;
+	/* MOVE TO NEXT EMPTY */
+	first_pointer++;
 	
 	/* WRITE TO DATA POOL */
 	updateDataPool("sister.fs", first_pointer, datacontent);
