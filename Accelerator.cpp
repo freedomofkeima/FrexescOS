@@ -232,7 +232,30 @@ static int sister_read(const char *path, char *buf, size_t size, off_t offset,
 		if (offset < fs.root[idx].file_size) {
 			if (offset + size > fs.root[idx].file_size)
 				size = fs.root[idx].file_size - offset;
-			//memcpy(buf, hello_str + offset, size);
+
+			if (fs.root[idx].file_size == 0) fs.root[idx].file_size = 1; // prevent error
+			char* oldContent = (char*) malloc (sizeof(char) * (fs.root[idx].file_size - 1));
+
+			/** Read oldContent (Call READ) [Note: Data is started from 2nd Pointer] */
+			int current_pointer;
+			for (int i = 0; i <= ((fs.root[idx].file_size - 1) / 1024); i++) { // file_size > 0
+				char* tempContent = (char*) malloc (sizeof(char) * BLOCK_SIZE);
+				// indexing
+				int lower_bound = i * BLOCK_SIZE;
+				int upper_bound = (i + 1) * BLOCK_SIZE - 1;
+				if (i == ((fs.root[idx].file_size - 1) / 1024)) upper_bound = fs.root[idx].file_size - 1;
+				current_pointer = fs.getSAT(fs.root[idx].block_pointer);
+				tempContent = fs.readDataPool(current_pointer);
+				int idx2 = 0;
+				for (int j = lower_bound; j <= upper_bound; j++) {
+					oldContent[j] = tempContent[idx2];
+					idx2++; // next element
+				}
+			}
+			/** End of reading */
+			for (int i = offset; i < offset + size; i++) buf[i - offset] = oldContent[i];
+			buf[size] = '\0';
+			cout << buf << " " << size << endl;
 		} else size = 0;
 	} else size = 0;
  
@@ -245,7 +268,22 @@ static int sister_read(const char *path, char *buf, size_t size, off_t offset,
 static int sister_write(const char *path, const char *buf, size_t size,
 		     off_t offset, struct fuse_file_info *fi)
 {
-	int res = 0;
+	int res = -ENOENT, idx = 0;
+
+	for (int i = 0; i < 32; i++) { // if exact match
+		if (fs.root[i].name[0] != '\0') { // not NULL
+			char bname[22]; strcpy(bname, "/"); strcat(bname, fs.root[i].name);
+			if (strcmp(bname, path) == 0) {
+				idx = i;
+				if (fs.root[i].attribute & (1 << 0)) res = -EACCES;
+				else res = 0;
+			}
+		}
+	}
+
+	if (res == 0) {
+
+	}
 	/*int fd;
 
 	(void) fi;
