@@ -18,10 +18,6 @@ static int sister_getattr(const char *path, struct stat *stbuf)
 {
 	int res = -ENOENT;
 
-	//res = lstat(path, stbuf);
-	//if (res == -1)
-	//	return -errno;
-
 	time_t test_time = time(0); // current time
 	memset(stbuf, 0, sizeof(struct stat));
 
@@ -35,14 +31,14 @@ static int sister_getattr(const char *path, struct stat *stbuf)
 		if (fs.root[i].name[0] != '\0') { // not NULL
 			char bname[22]; strcpy(bname, "/"); strcat(bname, fs.root[i].name);
 			if (strcmp(bname, path) == 0) {
-				if (fs.root[i].attribute & (1 << 3)) {
+				if (fs.root[i].attribute & (1 << 3)) { // If directory
 					stbuf->st_mode = S_IFDIR | 0444;
-				} else {
+				} else { // If regular file
 					stbuf->st_mode = S_IFREG | 0444;
 				}
 				stbuf->st_nlink = 1;
-				stbuf->st_mtime = test_time;
-				stbuf->st_size = fs.root[i].file_size;
+				stbuf->st_mtime = test_time; // TODO : change to file time
+				stbuf->st_size = fs.root[i].file_size; // file size
 				res = 0;
 			}
 		}
@@ -57,8 +53,6 @@ static int sister_getattr(const char *path, struct stat *stbuf)
 static int sister_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 		       off_t offset, struct fuse_file_info *fi)
 {
-	//DIR *dp;
-	//struct dirent *de;
 
 	(void) offset;
 	(void) fi;
@@ -68,12 +62,7 @@ static int sister_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 
 	filler(buf, ".", NULL, 0);
 	filler(buf, "..", NULL, 0);
-	
-	/*
-	char *hello_path = "/dummy.txt";
-	filler(buf, hello_path + 1, NULL, 0);
-	*/
-	
+
 	for (int i = 0; i < 32; i++) { // if exact match
 		if (fs.root[i].name[0] != '\0') { // not NULL
 			char bname[22]; strcpy(bname, "/"); strcat(bname, fs.root[i].name);
@@ -81,44 +70,12 @@ static int sister_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 		}
 	}
 
-	/*while ((de = readdir(dp)) != NULL) {
-		struct stat st;
-		memset(&st, 0, sizeof(st));
-		st.st_ino = de->d_ino;
-		st.st_mode = de->d_type << 12;
-		if (filler(buf, de->d_name, &st, 0))
-			break;
-	}*/
-
-	//closedir(dp);
-	return 0;
-}
-
-/**
-  * Implementation of mknod
-  */
-static int sister_mknod(const char *path, mode_t mode, dev_t rdev)
-{
-	int res;
-
-	/* On Linux this could just be 'mknod(path, mode, rdev)' but this
-	   is more portable */
-	/*if (S_ISREG(mode)) {
-		res = open(path, O_CREAT | O_EXCL | O_WRONLY, mode);
-		if (res >= 0)
-			res = close(res);
-	} else if (S_ISFIFO(mode))
-		res = mkfifo(path, mode);
-	else
-		res = mknod(path, mode, rdev);
-	if (res == -1)
-		return -errno; */
-
 	return 0;
 }
 
 /**
   * Implementation of mkdir
+
   */
 static int sister_mkdir(const char *path, mode_t mode)
 {
@@ -128,11 +85,38 @@ static int sister_mkdir(const char *path, mode_t mode)
 	fs.createDir(name);
 	res = 0;
 	/*res = mkdir(path, mode);
+
 	if (res == -1)
 		return -errno;*/
 
 	return res;
 }
+
+/**
+  * Implementation of mknod (TODO)
+  */
+static int sister_mknod(const char *path, mode_t mode, dev_t rdev)
+{
+	int res;
+
+	/* On Linux this could just be 'mknod(path, mode, rdev)' but this
+	   is more portable */
+	if (S_ISREG(mode)) {
+		res = open(path, O_CREAT | O_EXCL | O_WRONLY, mode);
+		if (res >= 0)
+			res = close(res);
+	} else if (S_ISFIFO(mode))
+		res = mkfifo(path, mode);
+	else
+		res = mknod(path, mode, rdev);
+	if (res == -1)
+		return -errno;
+
+	// res = sister_mkdir(path, mode);
+
+	return 0;
+}
+
 
 /**
   * Implementation of rmdir
@@ -150,9 +134,6 @@ static int sister_rmdir(const char *path)
 			break;
 		}
 	}
-	/*res = rmdir(path);
-	if (res == -1)
-		return -errno;*/
 
 	return res;
 }
@@ -180,10 +161,6 @@ static int sister_rename(const char *from, const char *to)
 			}
 		}
 	}
-	
-	/*res = rename(from, to);
-	if (res == -1)
-		return -errno;*/
 
 	return res;
 }
@@ -291,7 +268,6 @@ int main(int argc, char *argv[]) {
 	}
 	//fs.readFile(filename);
 
-	//umask(0);
 	return fuse_main(argc, argv, &sister_oper, NULL);
 
 	//return 0;

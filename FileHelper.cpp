@@ -7,14 +7,6 @@
 
 #include "FileHelper.h"
 
-/**
-  * TODO:
-  * 1. Create file attribute parser
-  * 2. Create date parser
-  * 3. Create hour parser
-  *
-  */
-
 /** Convert int to char* */
 unsigned char* convertIntToChar(int input) {
 	unsigned char* bytes = new unsigned char[4];
