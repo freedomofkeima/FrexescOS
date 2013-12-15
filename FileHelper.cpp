@@ -320,12 +320,7 @@ void FileHelper::updateDataPool(int block, char* data) {
 	fclose(file);
 }
 
-void FileHelper::parseFileInfo(file_info infos) {
-	bool attrs[4];
-	for (int i = 0; i < 4; i++) {
-		attrs[i] = infos.attribute & (1 << i);
-	}
-	
+time_t FileHelper::getTimeInfo(file_info infos) {
 	unsigned int s = 0, m = 0, h = 0, d = 0, M = 0, y = 0;
 	unsigned int tt = convert2CharToInt(infos.hour);
 	unsigned int temps = tt;
@@ -352,9 +347,16 @@ void FileHelper::parseFileInfo(file_info infos) {
 	temps = 0 + d + (M << 5);
 	y = 2010 + ((tt-temps) >> 9);
 	
-	//printf("%u %u %u %u %u %u\n", s, m, h, d, M, y);
-	//cout << infos.name << endl;
-	//cout << infos.file_size << endl;
+	struct tm timeinfo;
+	timeinfo.tm_year = y;
+	timeinfo.tm_mon = M;
+	timeinfo.tm_mday = d;
+	timeinfo.tm_hour = h;
+	timeinfo.tm_min = m;
+	timeinfo.tm_sec = s;
+	
+	time_t raw = mktime(&timeinfo);
+	return raw;
 }
 
 file_info FileHelper::getDataPool(int block) {

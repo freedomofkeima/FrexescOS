@@ -68,7 +68,7 @@ class FileHelper {
 
 		void printInfo(); // print info to screen
 		file_info getDataPool(int);
-		void parseFileInfo(file_info);
+		time_t getTimeInfo(file_info);
 		void createDummy();
 		void createDir(string);
 		bitset<4> getAttr(char);
