@@ -185,6 +185,16 @@ void FileHelper::readFile(string filename) {
 
 	/** Sister Allocation Table (SAT) */
 	// 128 KB (SAT_OFFSET - SAT_OFFSET + 128 * 1024 - 1)
+	char* buffer2 = (char*) malloc (sizeof(char) * 1024 * 128);
+	fseek(file, SAT_OFFSET, SEEK_SET);
+	result = fread(temp_buffer, 1, 1024*128, file); // read the next 32 bytes
+	for (int b = 0; b < 128; ++b)
+	{
+		for (int i = 0; i < 1024; ++i)
+		{
+			sat[b].buffer[j] = temp_buffer[b*1024+i];
+		}
+	}
 
 	/** Root Directory */
 	// 1024 Byte (ROOT_OFFSET - ROOT_OFFSET + 1023)
