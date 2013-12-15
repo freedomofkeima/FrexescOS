@@ -285,6 +285,18 @@ void FileHelper::updateRootDirectory(string filename, char* data) {
 	fclose(file);
 }
 
+/** Delete Root Directory Entry */
+void FileHelper::deleteRootDirectory(string filename, int num) {
+	FILE *file;
+	file = fopen(filename.c_str(), "rb+");
+	for (int j = 0; j < 32; j++) {
+		fseek(file, ROOT_OFFSET + num * 32 + j, SEEK_SET);
+		fputc(0, file);
+	}
+	fclose(file);
+	readFile("sister.fs");
+}
+
 /** Update Data Pool (block 1 - 65534) */
 void FileHelper::updateDataPool(string filename, int block, char* data) {
 	FILE *file;
@@ -552,4 +564,8 @@ bitset<4> FileHelper::getAttr(char c) {
 		res[i] = c & (1 << i);
 	}
 	return res;
+}
+
+void FileHelper::rmDir(int num) {
+	deleteRootDirectory("sister.fs", num);
 }

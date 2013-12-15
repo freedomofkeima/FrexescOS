@@ -123,8 +123,6 @@ static int sister_mknod(const char *path, mode_t mode, dev_t rdev)
 static int sister_mkdir(const char *path, mode_t mode)
 {
 	int res = -ENOENT;
-	cout << path << endl;
-	cout << mode << endl;
 	string name(path);
 	name = name.substr(1);
 	fs.createDir(name);
@@ -141,13 +139,22 @@ static int sister_mkdir(const char *path, mode_t mode)
   */
 static int sister_rmdir(const char *path)
 {
-	int res;
-
+	int res = -ENOENT;	
+	for (int i = 0; i < 32; i++) {
+		string c = ""; string fr(fs.root[i].name); c.push_back('/'); c += fr;
+		string n(path);
+		if (c == n) {
+			fs.rmDir(i);
+			cout << "LUCU\n";
+			res = 0;
+			break;
+		}
+	}
 	/*res = rmdir(path);
 	if (res == -1)
 		return -errno;*/
 
-	return 0;
+	return res;
 }
 
 /**
@@ -158,11 +165,8 @@ static int sister_rename(const char *from, const char *to)
 	int res = -ENOENT;
 	for (int i = 0; i < 32; i++) { // if exact match
 		if (fs.root[i].name[0] != '\0') { // not NULL
-			string c = ""; string fr(fs.root[i].name);
-			c.push_back('/');
-			c += fr;
+			string c = ""; string fr(fs.root[i].name); c.push_back('/'); c += fr;
 			string n(from);
-			cout << c << " " << n << endl;
 			if (c == n) {
 				for (int j = 0; j < 21; j++) {
 					if (to[j+1] != '\0') {

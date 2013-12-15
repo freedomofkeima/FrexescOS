@@ -70,6 +70,8 @@ class FileHelper {
 		void createDummy();
 		void createDir(string);
 		bitset<4> getAttr(char);
+		void deleteRootDirectory(string, int);
+		void rmDir(int);
 };
 
 #endif
