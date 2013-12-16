@@ -85,10 +85,8 @@ static int sister_mkdir(const char *path, mode_t mode)
 	name = name.substr(1);
 	fs.createDir(name);
 	res = 0;
-	/*res = mkdir(path, mode);
 
-	if (res == -1)
-		return -errno;*/
+	fs.printInfo();
 
 	return res;
 }
@@ -115,8 +113,12 @@ static int sister_mknod(const char *path, mode_t mode, dev_t rdev)
 		string filename = path, temp_name = "";
 		char data[1] = {'\0'};
 		for (int j = 1; j < (int) filename.length(); j++) temp_name += filename[j];
-		fs.newFile(temp_name, data);
+		int code = 0;
+		if (mode == O_RDONLY) code = 1; // Read-Only
+		fs.newFile(temp_name, code, data);
 	}
+
+	fs.printInfo();
 
 	return 0;
 }
@@ -137,6 +139,8 @@ static int sister_rmdir(const char *path)
 			break;
 		}
 	}
+
+	fs.printInfo();
 
 	return res;
 }
@@ -182,6 +186,10 @@ static int sister_truncate(const char *path, off_t size)
 			string c = ""; string fr(fs.root[i].name); c.push_back('/'); c += fr;
 			string n(path);
 			if (c == n) {
+				if (fs.root[i].attribute & (1 << 0)) { // Permission denied if read only
+					res = -EACCES;
+					break;
+				}
 				// Truncate here
 				fs.truncateFile(i, size);
 				res = 0;
@@ -189,6 +197,8 @@ static int sister_truncate(const char *path, off_t size)
 			}
 		}
 	}
+
+	fs.printInfo();
 
 	return res;
 }
@@ -258,7 +268,6 @@ static int sister_read(const char *path, char *buf, size_t size, off_t offset,
 			/** End of reading */
 			for (int i = offset; i < offset + size; i++) buf[i - offset] = oldContent[i];
 			buf[size] = '\0';
-			cout << buf << " " << size << endl;
 		} else size = 0;
 	} else size = 0;
  
@@ -278,7 +287,7 @@ static int sister_write(const char *path, const char *buf, size_t size,
 			char bname[22]; strcpy(bname, "/"); strcat(bname, fs.root[i].name);
 			if (strcmp(bname, path) == 0) {
 				idx = i;
-				if (fs.root[i].attribute & (1 << 0)) res = -EACCES;
+				if (fs.root[i].attribute & (1 << 0)) res = -EACCES; // Permission denied
 				else res = 0;
 			}
 		}
@@ -289,25 +298,16 @@ static int sister_write(const char *path, const char *buf, size_t size,
 		string filename = path, temp_name = "";
 		char data[1] = {'\0'};
 		for (int j = 1; j < (int) filename.length(); j++) temp_name += filename[j];
-		fs.newFile(temp_name, data);
+		fs.newFile(temp_name, 0, data);
 	}
 
 	if (res == 0) {
-
+		fs.writeFile(idx, size, buf, offset);
 	}
-	/*int fd;
 
-	(void) fi;
-	fd = open(path, O_WRONLY);
-	if (fd == -1)
-		return -errno;
+	fs.printInfo();
 
-	res = pwrite(fd, buf, size, offset);
-	if (res == -1)
-		res = -errno;
-
-	close(fd); */
-	return res;
+	return size;
 }
 
 /** C++ only */

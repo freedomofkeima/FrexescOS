@@ -77,8 +77,9 @@ class FileHelper {
 		void rmDir(int);
 		
 		void truncateFile(int, int); // Truncate file
+		void writeFile(int, int, const char*, int); // Write file
 		void newFile(file_info, char*); // Create new file (for truncate)
-		void newFile(string, char*); // Create new file
+		void newFile(string, int, char*); // Create new file
 
 		int getSAT(int); // Get SAT at certain index
 		void setSAT(int, int); // Set SAT at certain index with certain value

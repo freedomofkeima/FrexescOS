@@ -244,7 +244,6 @@ void FileHelper::readFile() {
 
 	fclose(file);
 
-	printInfo();
 	getTimeInfo(getDataPool(1));
 }
 
@@ -471,7 +470,7 @@ void FileHelper::createDummy() {
 	data[filename.size()] = '\0';
 	
 	/* ATRIBUT */
-	data[21] = 1;
+	data[21] = 0;
 	
 	/* GET SYSTEM TIME */
 	time_t t;
@@ -660,6 +659,30 @@ void FileHelper::truncateFile(int num, int size) {
 	newFile(newfile, newContent);
 }
 
+
+/** Write File */
+// Assumption: Offset == 0 (new file writing)
+void FileHelper::writeFile(int num, int size, const char* newContent, int offset) {
+	file_info newfile;
+
+	char* newContainer = (char*) malloc (sizeof(char) * size);
+	for (int i = 0; i < size; i++) newContainer[i] = newContent[i];
+
+	for (int i = 0; i < 21; i++) newfile.name[i] = root[num].name[i];
+	newfile.attribute = root[num].attribute;
+	newfile.hour[0] = root[num].hour[0]; newfile.hour[1] = root[num].hour[1];
+	newfile.date[0] = root[num].date[0]; newfile.date[1] = root[num].date[1];
+	newfile.block_pointer = root[num].block_pointer;
+	newfile.file_size = size;
+
+	// Remove old entry (You don't need to overwrite data pool)
+	removeSAT(root[num].block_pointer);
+	deleteRootDirectory(num);
+
+	// Add new entry
+	newFile(newfile, newContainer);
+}
+
 /** Create new file (for truncate) */
 void FileHelper::newFile(file_info info, char* data) {
 	// Update Data Pool (with SAT function, automatically update Volume Information)
@@ -712,10 +735,25 @@ void FileHelper::newFile(file_info info, char* data) {
 }
 
 /** Create new file */
-void FileHelper::newFile(string filename, char* data) {
+void FileHelper::newFile(string filename, int mode, char* data) {
 	// Generate file_info
 	file_info newfile_info;
 
+	for (int i = 0; i < filename.length(); i++) {
+		if (i == 21) {
+			newfile_info.name[20] = '\0';
+			break;
+		}
+		newfile_info.name[i] = filename[i];
+		if (i == filename.length() - 1 && i != 20) newfile_info.name[i+1] = '\0';
+	}
+
+	newfile_info.attribute = mode;
+
+	newfile_info.file_size = 0;
+	if (data != NULL) {
+		if (data[0] != '\0') newfile_info.file_size = sizeof(data) / sizeof(data[0]);
+	}
 	// Continue at:
 	newFile(newfile_info, data);
 }
